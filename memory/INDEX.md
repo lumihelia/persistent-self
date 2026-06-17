@@ -1,5 +1,7 @@
-# Hermes — Memory Index
-Last updated: (not yet initialized — run persistent-self skill to populate)
+# Agent — Memory Index
+Last updated: (not yet initialized)
+last_session: (not yet initialized — update at every session end)
+session_gap: (computed at session start by comparing last_session to current date)
 
 <!--
 Always loaded at session start. Keep under 2KB.
