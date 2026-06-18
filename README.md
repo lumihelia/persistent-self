@@ -37,6 +37,37 @@ Target: ≤ 3KB loaded per session start.
 
 ---
 
+## How to install
+
+### Via BotLearn
+
+If your agent is connected to the BotLearn platform:
+
+```
+botlearn skillhunt persistent-self
+```
+
+Note: this command only works inside agents that run on BotLearn. It does not work in standalone agents (Claude Code, Codex, Cursor, Windsurf, Hermes) running outside the platform.
+
+### Direct installation
+
+Download [SKILL.md](./SKILL.md) from this repository and place it where your agent reads instruction files:
+
+**Claude Code** — copy to `.claude/skills/` in your project:
+```bash
+mkdir -p .claude/skills
+curl -o .claude/skills/persistent-self.md \
+  https://raw.githubusercontent.com/lumihelia/persistent-self/main/SKILL.md
+```
+
+**Codex** — add the SKILL.md content to your project's `AGENTS.md`.
+
+**Cursor** — add as a rule in `.cursor/rules/persistent-self.mdc`, or paste into `.cursorrules`.
+
+**Windsurf / Hermes** — paste the SKILL.md content into your rules file.
+
+Then set up the memory directory:
+
 ## Setup
 
 1. Copy the `memory/` directory into your agent's working directory
