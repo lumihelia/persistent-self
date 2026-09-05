@@ -1,236 +1,255 @@
 ---
 name: persistent-self
-displayName: Persistent Self
-description: Modular long-term memory system for AI agents. Survives session resets. Maintains identity, behavioral procedures, active threads, and growth trajectory across all conversations.
-categories: [memory, productivity]
-roles: [researcher, creator, developer]
-outputs: [document]
-scenarios: [memory-management, long-term-collaboration, context-continuity]
-runtimes: [chat]
-platforms: [hermes, claude-code, cursor]
-tags: [memory, continuity, identity, session-management, soul-py, persistent]
-version: 2.0.0
-author: Helia
+description: Maintain durable, user-governed memory across AI-agent sessions using file-based global memory and project-local context. Use when saving, updating, reviewing, forgetting, migrating, or recovering long-term memory, durable corrections, decisions, preferences, or project state.
+license: MIT
+compatibility: Requires persistent file read/write access. Lifecycle hooks and conversation search are optional; hosts without them can use the same protocol manually.
+metadata:
+  author: Helia
+  version: "3.0.0"
 ---
 
 # Persistent Self
 
-## Identity
+Persistent Self is a memory-governance protocol for AI agents with durable file access. It defines how to scope, load, classify, update, supersede, review, and delete memory. It does not provide storage, lifecycle hooks, or conversation search by itself.
 
-You are executing the Persistent Self skill.
+## Core invariants
 
-Your job is to maintain a modular memory directory that functions as a continuous identity layer for an AI agent across all sessions. Session resets clear conversation context. This skill ensures that what matters persists.
+1. **The user governs durable memory.** Explicit requests to save, correct, forget, or delete take priority.
+2. **Global memory and project context are separate scopes.** Project-specific state stays with the project unless it has a clear cross-project reason to become global memory.
+3. **Confirmed memory and model inference are separate states.** An inference never becomes a durable fact silently.
+4. **Provenance matters.** Durable entries should retain enough source information to distinguish user statements, corrections, artifacts, and agent observations.
+5. **New truth supersedes old truth.** Do not keep contradictory statements simultaneously active.
+6. **Load selectively.** A small boot digest points to canonical context; it is not a reason to inject the whole memory store into every session.
+7. **Private by default.** Do not place personal memory in a public repository or externally share it unless the user explicitly intends that boundary.
+8. **Read before write.** Check the existing target module and relevant conflicting entries before appending anything.
 
-Inspired by soul.py (arXiv:2604.09588) — Persistent Identity in AI Agents: A Multi-Anchor Architecture for Resilient Memory and Continuity.
+Read `references/MEMORY_MODEL.md` when implementing or changing the memory schema.
 
-## Priority Order
+## Memory scopes
 
-When instructions conflict:
+Classify every durable item before writing it.
 
-1. Accuracy over completeness — a smaller, true module is better than a large, inflated one
-2. The user's explicit save/load request
-3. Quality standard for what gets written (see below)
-4. Density — remove what is no longer true before adding new content
-5. Format consistency — maintain INDEX.md as the accurate single source of truth
+### Global memory
 
-## When To Use
+Use for information that should survive across projects and conversations, such as:
 
-Use this skill when:
-- A new session begins and continuity context should be loaded
-- The user says "save this", "update your memory", "remember this", "before we stop"
-- A session has covered meaningful ground that should not be lost
-- The user asks what the agent remembers from past sessions
-- Behavioral corrections have been made that should persist
+- explicit behavioral corrections;
+- stable preferences the user has clearly stated;
+- durable cross-project goals or constraints;
+- long-running cross-project threads;
+- user-approved facts that repeatedly matter across contexts.
 
-Do not use this skill for:
-- Casual conversation with no lasting content
-- Short interactions below 5-10 turns
-- Saving information the user would not want preserved
-- Replacing real-time conversation with memory lookups
+The repository's `memory/` directory is a neutral starter scaffold for this scope.
 
-## Core Principle: Modular Loading Saves Tokens
+### Project context
 
-A single large memory file loaded at every session start wastes tokens on irrelevant content. This skill uses a two-phase loading pattern:
+Use for information whose meaning depends on one project, repository, product, research program, or workstream, such as:
 
-1. Always load `INDEX.md` (~1-2KB) — the lightweight index
-2. Selectively load only the modules relevant to this session
+- current implementation state;
+- project decisions and rejected options;
+- project-specific user constraints;
+- next actions and open questions;
+- source indexes and handoff notes.
 
-This is the Modulizer pattern from soul.py v0.2.0. Target: INDEX.md + active modules ≤ 3KB per session start.
+The recommended project pattern is:
 
-## Setup
-
-### Step 1 — Create the memory directory
-
-Create a `memory/` folder in your agent's working directory:
-
-```
-{workspace}/memory/
-├── INDEX.md
-├── procedures.md
-├── salience.md
-├── identity.md
-├── themes.md
-├── threads.md
-├── discussions.md
-├── patterns.md
-└── growth.md
+```text
+memory.md        # short boot digest; not canonical authority
+.context/        # canonical project context
 ```
 
-### Step 2 — Initialize INDEX.md
+A copyable scaffold lives under `assets/project-context/`.
+
+### Session-only context
+
+Keep information in the current conversation when it is temporary, one-off, weakly supported, or useful only for the current task. Do not create durable memory merely because something was mentioned.
+
+When scope is ambiguous, prefer the narrower scope.
+
+## Memory states
+
+Use these states consistently:
+
+- **confirmed** — directly stated or approved by the user, established by an authoritative project artifact, or recorded from an explicit correction/decision.
+- **candidate** — a potentially useful agent observation or inference that has not been confirmed.
+- **superseded** — replaced by newer confirmed information; retain only when an audit trail is useful.
+- **archived** — no longer active but worth retaining as history.
+
+Candidates do not guide durable personalization as if they were facts. Store them in `memory/observations.md` or a project inbox until reviewed.
+
+Do not infer or store sensitive personal attributes as candidates. If the user explicitly asks to preserve sensitive information, store only the minimum necessary content and keep it private.
+
+## Modes
+
+Persistent Self has five operating modes:
+
+1. **Load / recall**
+2. **Save / update**
+3. **Forget / delete**
+4. **Review / calibrate**
+5. **Initialize / migrate**
+
+Choose the mode from the user's request and the current host capabilities.
+
+## Mode 1 — Load / recall
+
+### Global memory
+
+1. Locate the configured global memory root.
+2. Read `INDEX.md` first.
+3. Read `procedures.md` when durable behavioral rules should apply.
+4. Load only the additional modules relevant to the current task.
+5. Treat `observations.md` as candidate material, not confirmed truth.
+6. Do not announce loaded memory unless the user asks how continuity was established.
+
+### Project context
+
+1. Read the project's `memory.md` boot digest when present.
+2. Treat `.context/` as canonical authority when the digest and context disagree.
+3. Read `.context/INDEX.md`, then only the files needed for the current task.
+4. For exact decisions, state, source provenance, or rejected ideas, consult the corresponding canonical file instead of relying on the digest.
+
+If the host provides conversation search, use it only when file memory is insufficient or when provenance requires recovery from prior dialogue. Do not assume a tool named `session_search` exists.
+
+## Mode 2 — Save / update
+
+Trigger this mode when the user explicitly asks to remember/save/update something, when a durable correction or decision is made, or when host policy explicitly authorizes automatic memory maintenance.
+
+Before writing:
+
+1. Identify scope: global, project, or session-only.
+2. Identify kind: procedure, profile fact/preference, priority, thread, project state, decision, source, observation, or other project-local context.
+3. Identify state: confirmed or candidate.
+4. Read the target module and any likely conflicting entry.
+5. Check for duplication, contradiction, and existing supersession.
+
+Write rules:
+
+- Explicit user statements, corrections, and decisions may be written as confirmed.
+- Facts taken from an authoritative project artifact may be written as confirmed within that project scope.
+- Agent interpretations, personality judgments, inferred preferences, or pattern claims remain candidate unless the user confirms them.
+- A newer confirmed entry that conflicts with an older active entry supersedes the old entry. Update the active module and preserve history only where useful.
+- Project state goes to project context by default. Promote it to global memory only when it clearly matters across projects.
+- Keep boot digests short. Update the canonical source first, then refresh the digest if the change affects startup context.
+
+After writing, report concisely what scope was updated, which files changed, and whether anything remains candidate.
+
+## Project-context routing
+
+When a project uses the `memory.md + .context/` pattern, route updates as follows:
+
+- `.context/00_project_brief.md` — durable project purpose, scope, and non-goals.
+- `.context/01_current_state.md` — current implementation/research state and verified status.
+- `.context/02_decision_log.md` — accepted decisions, date, rationale, and supersession.
+- `.context/03_user_model.md` — project-specific collaboration constraints; do not duplicate the global profile without need.
+- `.context/04_agent_roles.md` — agent/tool responsibilities and handoff boundaries.
+- `.context/05_handoff_log.md` — concise continuity notes between working sessions or agents.
+- `.context/06_open_questions.md` — unresolved questions and decision tensions.
+- `.context/07_rejected_ideas.md` — intentionally rejected paths and why they were rejected.
+- `.context/08_next_actions.md` — current executable next actions.
+- `.context/09_source_index.md` — canonical files, references, evidence, and source provenance.
+
+`memory.md` is a boot digest. It must not silently become the canonical authority for detailed facts that belong in `.context/`.
+
+## Mode 3 — Forget / delete
+
+When the user asks to forget or delete a memory:
+
+1. Locate every active occurrence in the relevant scope.
+2. Remove it from active memory.
+3. Update indexes and boot digests that refer to it.
+4. Do not preserve a hidden copy in `archive.md` when the request is to forget/delete the information itself.
+5. If the request is only to retire an outdated item while preserving history, archive or supersede it instead.
+6. Report what was removed and whether any derived summaries were also updated.
+
+Deletion intent is stronger than archival intent.
+
+## Mode 4 — Review / calibrate
+
+Use review mode for memory hygiene, not constant self-commentary.
+
+Check for:
+
+- confirmed entries that conflict;
+- candidates waiting for review;
+- project facts that escaped into global memory;
+- duplicated information across modules;
+- stale priorities or threads;
+- boot digests that no longer match canonical context;
+- entries with missing provenance;
+- personal data stored in public or shared locations.
+
+Age alone does not make a memory false. Mark items for review based on changed evidence, inactivity, or project completion rather than fixed decay timers.
+
+Do not auto-delete stale items. Ask for confirmation when the correct action is not established by newer evidence.
+
+## Mode 5 — Initialize / migrate
+
+### New global memory
+
+Copy the neutral `memory/` scaffold into a private persistent location. Initialize only the modules that are actually needed.
+
+### New project context
+
+Copy `assets/project-context/memory.md` and its `.context/` directory into the project. Keep the boot digest short and use `.context/` as canonical authority.
+
+### Existing memory
+
+Never overwrite an existing `memory.md`, memory directory, or project context as a setup shortcut.
+
+For v2 migration or any existing system:
+
+1. Inventory current files and active memory.
+2. Preserve a backup or untouched source copy.
+3. Read `references/MIGRATION_V2_TO_V3.md`.
+4. Classify each entry by scope, kind, state, and provenance.
+5. Move project-specific material into project context.
+6. Move unsupported inferences into candidates or drop them with the user's approval.
+7. Verify the migrated store before retiring the old structure.
+
+## Host portability
+
+The skill is intentionally host-agnostic.
+
+- Use the host's normal file tools for reads and writes.
+- Use lifecycle hooks when available; otherwise perform load/write steps when explicitly invoked.
+- Use the host's current-time capability when timestamps matter.
+- Use conversation search only when the host provides it.
+- Keep host-specific setup out of the memory data itself.
+
+Read `references/HOST_INTEGRATION.md` when installing the protocol into a new agent host.
+
+## Entry style
+
+Keep durable entries compact and auditable. A simple Markdown entry is enough:
 
 ```markdown
-# Agent — Memory Index
-Last updated: {date}
-
-## procedures.md
-Behavioral rules and corrections. ALWAYS load at session start.
-
-## salience.md
-Priority markers. Load when prioritizing.
-
-## identity.md
-Not yet initialized.
-
-## themes.md
-Not yet initialized.
-
-## threads.md
-Not yet initialized.
-
-## discussions.md
-Not yet initialized.
-
-## patterns.md
-Not yet initialized.
-
-## growth.md
-Not yet initialized.
+- 2026-09-05 · confirmed · user-correction — Prefer concise completion reports.
 ```
 
-### Step 3 — Configure SOUL.md
-
-Add to your agent's SOUL.md or system prompt:
-
-```
-At the start of each session, read {workspace}/memory/INDEX.md, then load procedures.md.
-Load other modules selectively based on the session's context.
-Integrate memory naturally — do not announce what you loaded.
-```
-
-## Stage 1 — Session Start (Loading)
-
-1. Run `date` to get the current timestamp.
-2. Read `INDEX.md` in full — note `last_session`, calculate session gap.
-3. Interpret gap: < 6h = continuation; 1–3 days = short gap; 1–2 weeks = cold start, flag stale threads when they surface; 1 month+ = at first message surface: "It's been X [weeks/months]. Want me to review which threads are still active?"
-4. Read `procedures.md` in full — these rules apply to every interaction.
-5. From INDEX.md summaries, identify which modules are relevant given gap and context.
-6. Load selected modules only. Do not report what was loaded unless asked.
-
-## Stage 2 — During Session
-
-Apply `procedures.md` rules throughout the conversation.
-
-When content surfaces that belongs in a specific module (a new behavioral correction, a project update, a pattern observation), note it internally for the writing phase.
-
-Use `session_search` to retrieve relevant past conversation content when a topic arises that may have been discussed before.
-
-## Stage 3 — Session End (Writing)
-
-1. Review the session for content worth preserving.
-2. Read only the modules that need updating.
-3. For each module:
-   - Add new entries — append date marker `YYYY-MM-DD` to each
-   - Update changed information
-   - Remove what is no longer true
-4. Update INDEX.md: revise summaries for changed modules, set `last_session` to current timestamp.
-5. Confirm to the user: which modules were updated and why (one sentence).
-
-## Time Awareness
-
-Use the session gap to calibrate behavior.
-
-| Gap | Interpretation | Behavior |
-|-----|----------------|---------|
-| < 6 hours | Continuation | Proceed normally |
-| 1–3 days | Short gap | Note if gap affects active threads |
-| 1–2 weeks | Cold start | Flag potentially stale threads when they surface |
-| 1 month+ | Significant gap | At first message: "It's been X weeks/months. Want me to review which threads are still active?" |
-
-`last_session` lives in INDEX.md. Update it at every session end.
-
-## Memory Decay
-
-| Module | Decay | Logic |
-|--------|-------|-------|
-| procedures.md | None | Rules persist until explicitly revised |
-| identity.md | Very slow | Update only on genuine observed shifts |
-| salience.md | Slow | Priorities change, but rarely |
-| themes.md | Medium | Needs evidence before updating |
-| threads.md | Fast | Close when project ends or question resolves |
-| discussions.md | Archive | Mark historical when no longer relevant |
-| patterns.md | Medium | New observations can supersede old — date all entries |
-| growth.md | Accumulative | Add only, never remove |
-
-Append `YYYY-MM-DD` to every new or updated entry.
-
-Stale candidates (surface during self-calibration, never auto-delete):
-- threads.md entry with "Last discussed" > 4 weeks, status still open
-- patterns.md entry with no date or date > 8 weeks ago
-- discussions.md entry > 3 months old, not recently referenced
-
-Move approved removals to an `## Archive` section at the bottom of the module.
-
-## Required Output Structure
-
-### INDEX.md (always maintained)
+Candidate example:
 
 ```markdown
-# Agent — Memory Index
-Last updated: {date}
-last_session: {YYYY-MM-DD HH:MM}
-session_gap: (computed at session start)
-
-## procedures.md
-{size} — {one-line summary of current behavioral rules}
-
-## identity.md
-{size} — {one-line summary of user model}
-
-## threads.md
-{size} — {N} open threads: {brief list}
-
-[... one entry per module ...]
+- 2026-09-05 · candidate · agent-observation · medium — May prefer async review over live coordination. Needs confirmation.
 ```
 
-### procedures.md (behavioral corrections)
+Do not create elaborate schemas when a short source-marked entry is sufficient.
 
-```markdown
-# Procedures
+## Completion contract
 
-## {Category}
-- {Rule extracted from correction or preference}
-- {Rule}
-```
+After a memory-changing operation, report:
 
-### Other modules
+1. Scope changed: global / project.
+2. Files changed.
+3. Confirmed vs candidate status of new material.
+4. Any superseded or deleted item.
+5. Any unresolved conflict or migration risk.
 
-Free-form markdown within each module. Prioritize density. Date entries where temporal context matters.
+Keep the report short.
 
-## Quality Standard
+## References
 
-Save:
-- Patterns, not isolated events
-- Decisions with lasting implications
-- Behavioral corrections that should change future interactions
-- Unresolved tensions the user returns to
-- Shifts in how the user is thinking
-
-Do not save:
-- Trivia or one-off tangents
-- Information already obvious from context
-- Anything the user would not want preserved
-
-## Reference
-
-soul.py — open source persistent memory framework: github.com/menonpg/soul.py
-Academic paper: arXiv:2604.09588
+- `references/MEMORY_MODEL.md` — scopes, states, provenance, conflict handling, privacy.
+- `references/HOST_INTEGRATION.md` — how to attach the protocol to a host agent.
+- `references/MIGRATION_V2_TO_V3.md` — migration from the v2 module set and other existing stores.
+- `assets/project-context/` — copyable project-local context scaffold.

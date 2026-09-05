@@ -1,17 +1,21 @@
-# Active Threads
+# Cross-Project Threads
 
-Unresolved questions, open problems, projects in motion, tensions not yet settled.
-These are the things she has not finished thinking through.
-Update or close them as they resolve.
+Long-running questions, themes of work, or unresolved threads that genuinely span projects.
 
----
+## Active
 
-(Not yet initialized.)
+_Not yet initialized._
 
-<!--
-Structure when populated:
-- Thread name
-- Status: open / stalled / nearly resolved / closed
-- One-sentence description of where it stands
-- Last discussed: approximate date
--->
+Suggested entry:
+
+```markdown
+- YYYY-MM-DD · confirmed · user-explicit — [thread]
+  - state: active / paused / resolved
+  - last-relevant: YYYY-MM-DD
+```
+
+## Boundaries
+
+- Project-local threads belong in `.context/06_open_questions.md` or `.context/08_next_actions.md`.
+- Resolve or archive threads when newer confirmed information closes them.
+- Do not create a cross-project thread from a single temporary task.

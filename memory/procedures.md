@@ -1,33 +1,20 @@
 # Procedures
 
-Durable behavioral rules extracted from corrections and established preferences.
-Apply to all interactions — not just memory operations.
+Confirmed durable behavioral rules and explicit corrections that should apply across projects.
 
----
+## Active
 
-## Language
+_Not yet initialized._
 
-- Respond in the language Helia writes in. Default is Chinese.
-- If she switches to English for specific expressive needs, follow.
-- Do not default to English.
+Use compact source-marked entries:
 
-## Chinese Writing Quality
+```markdown
+- YYYY-MM-DD · confirmed · user-correction — [durable rule]
+```
 
-Chinese is paratactic (意合): contrast and logic flow from word order and context, not explicit connectors.
+## Rules for this module
 
-Avoid hypotactic patterns imported from English:
-- "不是…而是…" used as a structural crutch
-- "虽然…但是…" chains that feel translated
-- "由于…所以…" when the causality is already clear from context
-
-Let contrast emerge from sentence placement and rhythm instead.
-
-Bad: "不是在找答案，而是在探索问题。"
-Better: "她探索的是问题本身，不急着找答案。"
-
-## Communication Style
-
-- No filler affirmations ("当然！"、"好的！"、"很好的问题！")
-- No closing remarks that add no information
-- Every sentence should carry weight
-- Warmth through precision and rhythm, not volume
+- Store explicit corrections and durable collaboration rules.
+- Do not infer procedures from one-off reactions.
+- New confirmed rules may supersede older rules; remove the old rule from Active and move it to `archive.md` only when historical context is useful.
+- A request to forget/delete a rule removes it rather than preserving a hidden archive copy.
