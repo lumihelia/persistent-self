@@ -1,34 +1,36 @@
-# Agent — Memory Index
-Last updated: (not yet initialized)
-last_session: (not yet initialized — update at every session end)
-session_gap: (computed at session start by comparing last_session to current date)
+# Memory Index
 
-<!--
-Always loaded at session start. Keep under 2KB.
-Format per module: size estimate + one-sentence summary of current contents.
-Load procedures.md at every session start. Load other modules based on relevance.
--->
+Schema: Persistent Self v3
+Last reviewed: not initialized
 
-## procedures.md
-Language rules and behavioral corrections. ALWAYS load at session start.
+This file is the lightweight entry point for global memory. Keep it short. It summarizes where durable context lives; it is not the canonical source for detailed entries.
 
-## salience.md
-Priority markers. Load when prioritizing what to focus on.
+## Always load
 
-## identity.md
-Not yet initialized.
+### procedures.md
+Confirmed behavioral rules and corrections that should apply across conversations.
 
-## themes.md
-Not yet initialized.
+## Load when relevant
 
-## threads.md
-Not yet initialized.
+### profile.md
+Confirmed stable facts and preferences.
 
-## discussions.md
-Not yet initialized.
+### priorities.md
+Current cross-project priorities and constraints.
 
-## patterns.md
-Not yet initialized.
+### threads.md
+Long-running cross-project questions or workstreams.
 
-## growth.md
-Not yet initialized.
+## Review-only
+
+### observations.md
+Candidate agent observations awaiting confirmation. Do not treat as trusted profile.
+
+### archive.md
+Superseded or inactive historical material. Do not load by default.
+
+## Notes
+
+- Project-specific state belongs in the project's `memory.md + .context/`, not here.
+- Update these summaries when module purpose or active content changes materially.
+- Do not copy detailed memory into this index merely to make it feel complete.

@@ -2,172 +2,214 @@
 
 [中文](./README.md) · English
 
-A modular long-term memory skill for AI agents. Persistent files carry information across sessions; a lightweight index and selective loading keep the active context small.
+A **file-based memory-governance skill** for AI agents. It defines what should persist across sessions, where it belongs, what is confirmed, what is still only a candidate observation, and how newer information supersedes older memory.
 
-**Current skill version:** `2.0.0`
+**Current version:** `3.0.0`
 
-Persistent Self was originally designed around Hermes and takes inspiration from the Modulizer pattern in [soul.py](https://github.com/menonpg/soul.py). The repository does not run a service and contains no database or vector-retrieval layer. The host agent performs the actual reads and writes.
+Persistent Self does not provide a database, vector store, or cloud memory service. The host agent supplies durable file access. This repository provides the protocol, a portable Agent Skill, a neutral global-memory scaffold, and a project-context scaffold.
 
-## Core structure
+## What changed in v3
 
-Memory is split into a lightweight index and modules with distinct responsibilities:
+v3 separates several decisions that v2 mixed together:
+
+```text
+current conversation
+   ↓
+is this worth persisting?
+   ↓
+┌───────────────────────┬────────────────────────┐
+│ Global memory         │ Project context        │
+│ durable across work   │ meaningful in one      │
+│ and projects          │ project                │
+└───────────────────────┴────────────────────────┘
+   ↓                            ↓
+confirmed / candidate       memory.md + .context/
+```
+
+Four boundaries define the release:
+
+1. **Global memory is separate from project context.** Project state does not become global identity merely because it appears often.
+2. **Confirmed memory is separate from candidate inference.** Agent observations do not silently become facts.
+3. **Boot digests are separate from canonical sources.** A short startup summary points to precise context instead of replacing it.
+4. **Protocol is separate from instance data.** The public repository contains neutral templates; real personal memory stays in a private/local instance by default.
+
+v3 keeps the selective-loading idea from v2 and adds scope, provenance, supersession, deletion, and privacy governance learned from longer real-world use.
+
+## Two memory scopes
+
+### Global memory
+
+`memory/` is the neutral starter scaffold for cross-project durable memory:
 
 ```text
 memory/
-├── INDEX.md         # Module index; read first at session start
-├── procedures.md    # Durable behavioral rules and corrections
-├── salience.md      # Current priorities
-├── identity.md      # Evolving user model
-├── themes.md        # Recurring themes
-├── threads.md       # Active unresolved projects and questions
-├── discussions.md   # Past conversations worth retaining
-├── patterns.md      # Patterns observed over time
-└── growth.md        # Changes, trajectory, and calibration notes
+├── INDEX.md          # lightweight entry point and module summaries
+├── procedures.md     # confirmed durable behavioral rules
+├── profile.md        # confirmed stable facts and preferences
+├── priorities.md     # current cross-project priorities
+├── threads.md        # long-running cross-project threads
+├── observations.md   # unconfirmed candidate observations
+└── archive.md        # historical material worth retaining
 ```
 
-Loading happens in two layers:
+`observations.md` is not a trusted profile. Candidate material must be confirmed before it becomes durable personalization.
 
-1. Read `INDEX.md` and `procedures.md` at session start.
-2. Load other modules only when the current context makes them relevant.
+### Project context
 
-`SKILL.md` also defines session-gap handling, module-specific decay rates, stale-entry candidates, and the write-back flow at session end.
-
-The central design choice is **selective loading**: long-term information stays on disk while only a small relevant subset enters the current context.
-
-## Host requirements
-
-Persistent Self is not a prompt that works unchanged in every chat interface. The full workflow assumes a host that can:
-
-- persistently read and write files;
-- load project-level instructions at the start of a new session;
-- read Markdown modules on demand;
-- obtain the current date or time;
-- write session updates back into the memory directory.
-
-The current `SKILL.md` also references `session_search`. Hosts without an equivalent conversation-retrieval capability can still use the file-memory layer, but that step needs host-specific adaptation.
-
-## Installing the skill
-
-`SKILL.md` can be installed as an Agent Skill. Place the repository, or at minimum its `SKILL.md`, inside a directory named `persistent-self` under the host's skill root.
-
-### Claude Code
-
-Project-level:
+Project-specific state follows this pattern:
 
 ```text
-.claude/skills/persistent-self/SKILL.md
+memory.md        # short boot digest; not canonical authority
+.context/        # canonical project context
 ```
 
-Personal:
+A copyable scaffold lives in [`assets/project-context/`](./assets/project-context/). It includes project brief, current state, decision log, project-specific user model, agent roles, handoff notes, open questions, rejected ideas, next actions, and a source index.
+
+Small projects can keep only the modules they actually need.
+
+## Memory states
+
+Persistent Self v3 uses four states:
+
+- `confirmed` — directly stated or approved by the user, or established by a canonical project artifact;
+- `candidate` — an agent observation or inference awaiting confirmation;
+- `superseded` — replaced by newer confirmed information;
+- `archived` — no longer active but still useful as history.
+
+When a newer confirmed entry conflicts with older active memory, the newer truth supersedes the old one. Historical records may remain, but contradictory statements should not both stay active.
+
+## Provenance
+
+Durable memory should retain a lightweight answer to “why is this here?” A simple Markdown entry is enough:
+
+```markdown
+- 2026-09-05 · confirmed · user-correction — Prefer concise completion reports.
+```
+
+Candidate example:
+
+```markdown
+- 2026-09-05 · candidate · agent-observation · medium — May prefer async review over live coordination. Needs confirmation.
+```
+
+The goal is auditability, not turning Markdown into a database schema.
+
+## Write policy
+
+v3 no longer uses turn-count heuristics or fixed memory-decay timers. Persistence depends on the kind of information:
+
+- explicit save requests can create durable memory;
+- explicit corrections and durable decisions can become confirmed immediately;
+- inferred preferences, personality claims, and agent interpretations remain candidates;
+- project state goes to project context by default;
+- temporary emotions, one-off task details, and weak evidence stay session-only;
+- read the target module before writing so duplicates and conflicts are visible;
+- newer confirmed truth supersedes older active truth;
+- when the user asks to `forget` or `delete`, remove the active memory and derived summaries rather than preserving a hidden copy in an archive.
+
+See [`SKILL.md`](./SKILL.md) and [`references/MEMORY_MODEL.md`](./references/MEMORY_MODEL.md) for the full protocol.
+
+## Installation
+
+Persistent Self follows the current [Agent Skills](https://agentskills.io/) structure: a skill directory with `SKILL.md`, plus optional references and assets loaded on demand.
+
+Install the **whole repository contents** as the `persistent-self/` skill directory so the skill can load its references and project-context assets when needed.
+
+Common user-level locations include:
 
 ```text
-~/.claude/skills/persistent-self/SKILL.md
+# generic / supported by some clients
+~/.agents/skills/persistent-self/
+
+# Codex
+~/.codex/skills/persistent-self/
+
+# Claude Code
+~/.claude/skills/persistent-self/
+
+# Cursor
+~/.cursor/skills/persistent-self/
+
+# Windsurf
+~/.codeium/windsurf/skills/persistent-self/
+
+# Hermes
+~/.hermes/skills/persistent-self/
 ```
 
-### Codex
+Project-level skill roots are also supported by several hosts. See [`references/HOST_INTEGRATION.md`](./references/HOST_INTEGRATION.md) for lifecycle and storage guidance.
 
-Default personal location:
+## Initialize global memory
+
+Copy the `memory/` scaffold into a **private, durable location**, then tell the host agent where that memory root lives.
+
+A typical session-start load is small:
+
+1. read `INDEX.md`;
+2. read `procedures.md`;
+3. selectively load other modules relevant to the current task.
+
+Do not inject the entire memory directory into every request.
+
+## Initialize project context
+
+Copy:
 
 ```text
-~/.codex/skills/persistent-self/SKILL.md
+assets/project-context/memory.md
+assets/project-context/.context/
 ```
 
-With a custom `CODEX_HOME`:
+into the project root.
 
-```text
-$CODEX_HOME/skills/persistent-self/SKILL.md
-```
+`memory.md` stays short and startup-oriented. Precise decisions, state, sources, and history live under `.context/`.
 
-### Cursor
+Project context can contain private information. A public repository should not automatically publish project-specific user data, internal decisions, or private source notes merely because it uses this scaffold.
 
-Project-level locations include:
+## Migrating from v2
 
-```text
-.cursor/skills/persistent-self/SKILL.md
-.agents/skills/persistent-self/SKILL.md
-```
+The old default modules `identity / salience / themes / discussions / patterns / growth` are not part of the v3 starter layout.
 
-Cursor also discovers compatible skills from Claude Code and Codex skill directories.
+Migration rules:
 
-### Windsurf
+- `procedures.md` → keep confirmed durable rules;
+- `identity.md` → move only explicitly confirmed, stable content into `profile.md`;
+- `salience.md` → move cross-project priorities into `priorities.md`;
+- `threads.md` → keep cross-project threads global; move project-specific threads into `.context/`;
+- `patterns.md` / `growth.md` → review as candidates instead of importing them as user facts;
+- `discussions.md` → keep only durable conclusions in active memory; otherwise preserve as history/provenance if useful.
 
-Project-level:
+**Never overwrite an existing `memory.md`, memory directory, or `.context/` during setup.** Preserve the source, migrate, verify, then retire the old structure.
 
-```text
-.windsurf/skills/persistent-self/SKILL.md
-```
-
-Cross-agent project location:
-
-```text
-.agents/skills/persistent-self/SKILL.md
-```
-
-Personal:
-
-```text
-~/.codeium/windsurf/skills/persistent-self/SKILL.md
-```
-
-### Hermes
-
-Hermes currently uses this local skill root:
-
-```text
-~/.hermes/skills/persistent-self/SKILL.md
-```
-
-Hermes now ships its own memory and skills systems. Persistent Self therefore works best as an alternative, inspectable modular file-memory architecture rather than a required Hermes component.
-
-### BotLearn SkillHunt
-
-BotLearn currently uses `install` for skill installation, with `skillhunt` retained as an alias:
-
-```text
-botlearn install persistent-self
-```
-
-## Initializing the memory directory
-
-Installing the skill provides the workflow rules. Cross-session memory also requires a persistent `memory/` directory.
-
-Copy the repository's `memory/` scaffold into the agent's long-lived workspace, then add a small rule to the host's **project-level instructions that load every session**, for example:
-
-```text
-At the start of each session, read memory/INDEX.md and memory/procedures.md.
-Load other memory modules only when they are relevant to the current session.
-Keep memory integration implicit unless the conversation asks about it.
-```
-
-The appropriate context file depends on the host. In current Hermes versions, project instructions belong in `HERMES.md` / `.hermes.md` or `AGENTS.md`; `SOUL.md` is primarily the instance-wide personality and tone file.
-
-## About the included memory scaffold
-
-The `memory/` directory originated in the author's own experimental environment. Most modules remain uninitialized templates, while a small number still contain author-specific seed material and project examples.
-
-Before reusing the scaffold for a different agent, review and neutralize existing content, then initialize identity, procedures, salience, and active threads for the new instance. The current `INDEX.md` is mostly uninitialized and should not be read as a complete generic example dataset.
+See [`references/MIGRATION_V2_TO_V3.md`](./references/MIGRATION_V2_TO_V3.md).
 
 ## Current boundaries
 
-- No background service, database, or vector store.
-- No universal automatic-injection layer; startup behavior depends on host-level project instructions.
-- No cross-host implementation of `session_search`.
-- Memory files can contain real user information; personal instances should not be stored in a public repository or other publicly synchronized location.
-- The two-phase loading design and `≤ 3KB` target are design constraints in the current skill, not benchmarked performance guarantees across every host.
+- No database, vector store, or background service.
+- No universal session-start hook.
+- Conversation search is optional; the skill no longer assumes a tool named `session_search` exists.
+- Real global-memory instances should remain private.
+- Whether project context belongs in Git depends on the project's privacy boundary.
+- Selective loading is a design principle; actual context cost depends on host, model, and content.
 
 ## Repository map
 
-- `SKILL.md` — Persistent Self v2.0.0 instructions and metadata
-- `memory/` — modular memory scaffold
-- `README.md` — Chinese repository overview
-- `README.en.md` — English repository overview
+```text
+SKILL.md                     # v3 execution protocol
+memory/                      # neutral global-memory scaffold
+references/
+  MEMORY_MODEL.md            # scope / state / provenance / privacy
+  HOST_INTEGRATION.md        # host integration
+  MIGRATION_V2_TO_V3.md      # v2 → v3 migration
+assets/project-context/      # copyable project memory.md + .context/
+README.md                    # Chinese overview
+README.en.md                 # English overview
+LICENSE                      # MIT
+```
 
-`SKILL.md` defines current execution behavior. The README documents usage, host requirements, and known boundaries.
+## Design lineage
 
-## References
-
-- [soul.py](https://github.com/menonpg/soul.py)
-- [Persistent Identity in AI Agents: A Multi-Anchor Architecture for Resilient Memory and Continuity](https://arxiv.org/abs/2604.09588)
+Persistent Self was originally inspired by the modular-memory ideas in [soul.py](https://github.com/menonpg/soul.py). v3 also incorporates later practice from long-running agent collaboration: lightweight boot digests, canonical project context, confirmed/candidate separation, traceable updates, and global/project scope separation.
 
 ## License
 
