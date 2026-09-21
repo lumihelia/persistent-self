@@ -35,7 +35,7 @@ Do not place the user's real memory in the skill's neutral `memory/` scaffold.
 
 Inspect existing instructions, project docs, task tracking, context stores, and sharing rules. Merge [AGENTS.snippet.md](../assets/project-context/AGENTS.snippet.md) into the host-recognized project instruction file or equivalent project rules. The package's root AGENTS.md governs contributors and must not be copied as the user's project contract.
 
-Create an index only if it improves discovery, using [the asset guide](../assets/project-context/README.md). Populate it with actual sources. Add an optional boot digest or missing semantic roles only when useful. Existing filenames and docs are valid; avoid a second canonical copy.
+Create an index only if it improves discovery, using [the asset guide](../assets/project-context/README.md). Populate it with actual sources. The supplied `.context/` directory mirrors the target layout and includes all reference roles. For new projects it can be adopted as a scaffold; for existing projects merge only needed roles without overwriting populated files. An optional boot digest can help discovery. Empty templates remain explicitly uninitialized and are not evidence. Existing filenames and docs are valid; avoid a second canonical copy.
 
 The snippet authorizes scoped project maintenance only if the project owner adopts it and the host permits it. It does not grant public publishing, deployments, personal-memory ingestion, or access to another account.
 

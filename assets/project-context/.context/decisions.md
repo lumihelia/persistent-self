@@ -1,5 +1,7 @@
 # Durable decisions
 
+Read when earlier tradeoffs or rejected paths matter. Update when a consequential decision is accepted, rejected, or superseded; preserve its rationale and authority.
+
 Record decisions whose rationale changes future work. Existing ADRs or decision records can fulfill this role.
 
 ## Entry fields

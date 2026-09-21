@@ -18,7 +18,7 @@ Code that violates an accepted requirement demonstrates drift; it does not repea
 
 A project may begin with recognized project instructions and an index pointing to existing product docs, decisions, and tasks. Add files only when an important semantic role is missing.
 
-The [asset guide](../assets/project-context/README.md) provides an index, optional boot digest, and optional project/decision/knowledge/source/checkpoint templates. Use existing ADRs, issues, PRs, research logs, and design docs rather than duplicating their contents. Filenames are suggestions. An index should list only sources that actually exist.
+The [asset guide](../assets/project-context/README.md) provides a complete `.context/` template with project, decision, knowledge, state, source, candidate, and archive roles, plus an optional boot digest. The template layout matches the target project. Adopt only needed roles; template availability does not require full loading or filling every file. Use existing ADRs, issues, PRs, research logs, and design docs rather than duplicating their contents. Filenames are suggestions. An index should list only sources that actually exist.
 
 ## Recovering a checkpoint
 
@@ -47,7 +47,7 @@ Stop retrieval when the next action has a known target, relevant constraints, a 
 
 Write or refresh when an interruption, handoff, meaningful milestone, or unresolved blocker creates a real continuation need under the project's maintenance authorization. Do not depend solely on a session-end hook: abrupt termination may bypass it.
 
-Use the task system that already owns the work. If a file is needed, the [checkpoint template](../assets/project-context/optional/checkpoint.md) preserves the fields above. Update current position rather than accumulating a diary. Keep durable decisions in their owning records and link them.
+Use the task system that already owns the work. If a file is needed, the [checkpoint template](../assets/project-context/.context/state.md) preserves the fields above. Update current position rather than accumulating a diary. Keep durable decisions in their owning records and link them.
 
 “API complete” is insufficient if only local tests passed. A useful checkpoint distinguishes implementation, local validation, review, deployment, and live behavior wherever those stages affect continuation. Preserve unknowns and unexecuted checks explicitly.
 

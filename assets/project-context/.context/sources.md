@@ -1,5 +1,7 @@
 # Context sources
 
+Read when locating evidence or checking provenance. Update when source locations, supported claims, freshness, or authorized access change.
+
 Keep pointers to evidence rather than copied source bodies. Existing source maps can fulfill this role.
 
 ## Entry fields

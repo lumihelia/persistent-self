@@ -1,5 +1,7 @@
 # Accepted project context
 
+Read when purpose, scope, or invariants affect the task. Update when an authorized decision changes accepted project meaning; link existing project docs rather than duplicating them.
+
 Use only where existing project docs do not already own this information.
 
 ## Purpose and intended outcome

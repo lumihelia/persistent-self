@@ -1,5 +1,7 @@
 # Workstream checkpoint
 
+Read when resuming this workstream. Refresh at a meaningful milestone, interruption/handoff, blocker, or verification change under the adopted maintenance policy. For parallel work, use one owning record per workstream rather than overwriting this file with several states.
+
 Use this only if the existing issue/PR/task does not already carry the required state. It is volatile: revalidate on use. Replace stale state rather than accumulating a diary.
 
 ## Identity

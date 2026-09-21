@@ -51,23 +51,45 @@ Ask the agent to use this Skill with the target project:
 
 > “Set up Persistent Self in project-only mode for this project. Inspect existing instructions, docs, and task records first. Reuse existing sources and create the smallest useful context recovery entry point. Preserve existing content and verify whether a fresh conversation can continue from a checkpoint.”
 
-Merge the [project instruction snippet](assets/project-context/AGENTS.snippet.md) and use [project templates](assets/project-context/README.md) as needed. Do not overwrite an existing project with the entire directory.
+Merge the [project instruction snippet](assets/project-context/AGENTS.snippet.md), then adopt templates according to existing project sources. **The repository directly supplies the complete [.context/ template](assets/project-context/.context/INDEX.md), matching the target project's layout.** No assembly from another directory is needed. Some file browsers hide directories beginning with a dot; the link opens the template entry point.
 
-The smallest setup can be project instructions and an index pointing to existing sources. This is an optional expansion example, not an installation checklist:
+The template supplies the structure below. A project can adopt all of it or only the roles it needs. When existing documents serve the same purpose, INDEX points to them directly. Within authorization, the agent inspects and merges the setup; users do not need to move files manually, and existing content must not be overwritten.
 
 ```text
 project/
 ├── AGENTS.md                 # or other host-recognized project instructions
 ├── memory.md                 # optional short recovery-entry cache
 └── .context/
-    ├── INDEX.md              # routes to sources that actually exist
-    ├── project.md            # optional; existing project docs can serve this role
-    ├── decisions.md          # optional; existing decision records can serve this role
-    ├── knowledge.md          # optional; non-obvious constraints and corrections
-    ├── sources.md            # optional; provenance pointers
-    └── state/                # only when file-based parallel state is needed
-        └── <workstream>.md   # one workstream can use state.md or an existing issue/PR
+    ├── INDEX.md              # find context relevant to the current task
+    ├── project.md            # purpose, scope, durable constraints
+    ├── decisions.md          # tradeoffs and reasons for acceptance/rejection
+    ├── knowledge.md          # non-obvious knowledge and important corrections
+    ├── state.md              # current workstream checkpoint
+    ├── sources.md            # source and evidence pointers
+    ├── candidates/           # unconfirmed interpretations or hypotheses
+    │   └── README.md
+    └── archive/              # useful history outside active context
+        └── README.md
 ```
+
+### Which file changes in which situation?
+
+| File | Read when | Update when |
+| --- | --- | --- |
+| [INDEX.md](assets/project-context/.context/INDEX.md) | Locating relevant context or a workstream | Source locations, purposes, statuses, or workstream entry points change |
+| [project.md](assets/project-context/.context/project.md) | Project goals, scope, or constraints matter | An authorized decision changes purpose, boundaries, or success conditions |
+| [decisions.md](assets/project-context/.context/decisions.md) | Understanding a prior choice or rejected alternative | A consequential option is accepted, rejected, or superseded |
+| [knowledge.md](assets/project-context/.context/knowledge.md) | The task involves relevant non-obvious knowledge or constraints | Reusable knowledge is established with evidence or an important correction arrives |
+| [state.md](assets/project-context/.context/state.md) | Resuming its workstream after interruption | A milestone completes, a handoff is needed, or blocker/verification state changes |
+| [sources.md](assets/project-context/.context/sources.md) | Finding support or checking provenance | Evidence locations, supported claims, freshness, or access conditions change |
+| [candidates/](assets/project-context/.context/candidates/README.md) | Reviewing a task-relevant unconfirmed hypothesis | A useful inference needs preservation, confirmation, narrowing, or withdrawal |
+| [archive/](assets/project-context/.context/archive/README.md) | Tracing historical rationale | Material leaves active context but retains value and may be retained |
+
+For example, discovering an undocumented API constraint can update `knowledge.md` with evidence. Choosing a different approach updates `decisions.md`. Stopping after local tests pass, with end-to-end validation still pending, updates the owning `state.md`. These changes do not require rewriting every other file.
+
+Parallel tasks use `.context/state/<workstream>.md` or existing issues/PRs. INDEX points to the owning records so tasks do not overwrite one shared `state.md`.
+
+**Supplying the complete template does not require reading or filling every file on each task.** After setup, INDEX lists only retained sources. Empty templates that remain are marked uninitialized and are not project facts. See the [asset guide](assets/project-context/README.md) for adoption details.
 
 Accepted decisions describe intended behavior; live evidence describes current behavior. `memory.md` is a cache, and `.context/` organizes knowledge and pointers. A filename cannot turn an outdated record into current fact.
 

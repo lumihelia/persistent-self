@@ -51,23 +51,45 @@ Agent 通过项目指令、INDEX、可选的简短摘要或已有 issue／PR，�
 
 > “为这个项目接入 Persistent Self 的 project-only 模式。先检查现有指令、文档和任务记录，复用已有来源，建立最小的上下文恢复入口。保留已有内容，验证新对话能否从 checkpoint 继续。”
 
-初始化时合入 [项目指令片段](assets/project-context/AGENTS.snippet.md)，并按需采用 [项目模板](assets/project-context/README.md)。不要整目录覆盖现有项目。
+初始化时合入 [项目指令片段](assets/project-context/AGENTS.snippet.md)，再根据项目已有资料采用模板。**仓库直接提供完整的 [.context/ 模板](assets/project-context/.context/INDEX.md)，目录与实际项目一一对应**，不需要从其他目录组装。点号开头的目录在部分文件浏览器中会隐藏，可以从这个链接进入。
 
-最小结构可以只有项目指令和指向已有资料的索引。以下是按需扩展的示意，不是安装清单：
+模板提供以下结构；项目可采用整套，也可只采用需要的部分。已有文档能够承担相同职责时，INDEX 直接指向已有文档。Agent 负责在授权范围内完成检查与合入，不需要使用者手动搬文件，也不能覆盖已有内容。
 
 ```text
 project/
 ├── AGENTS.md                 # 或宿主识别的其他项目指令
 ├── memory.md                 # 可选，简短的恢复入口缓存
 └── .context/
-    ├── INDEX.md              # 指向实际存在的资料
-    ├── project.md            # 可选；已有项目说明可承担此职责
-    ├── decisions.md          # 可选；已有决策记录可承担此职责
-    ├── knowledge.md          # 可选；非显然约束与纠正
-    ├── sources.md            # 可选；来源指针
-    └── state/                # 需要文件型并行状态时才建立
-        └── <workstream>.md   # 单工作线也可用 state.md 或已有 issue／PR
+    ├── INDEX.md              # 找到与当前任务相关的资料
+    ├── project.md            # 项目目的、范围、长期约束
+    ├── decisions.md          # 方案取舍、接受与否决的理由
+    ├── knowledge.md          # 非显然知识与重要纠正
+    ├── state.md              # 当前工作线的 checkpoint
+    ├── sources.md            # 来源与证据指针
+    ├── candidates/           # 尚未确认的解释或假设
+    │   └── README.md
+    └── archive/              # 已退出活跃上下文的有用历史
+        └── README.md
 ```
+
+### 不同情况下维护哪个文件？
+
+| 文件 | 什么时候读取 | 什么时候更新 |
+| --- | --- | --- |
+| [INDEX.md](assets/project-context/.context/INDEX.md) | 需要定位相关资料或工作线 | 资料位置、用途、状态或工作线入口变化 |
+| [project.md](assets/project-context/.context/project.md) | 需要判断项目目标、范围或约束 | 获得授权的决策改变了项目目标、边界或成功条件 |
+| [decisions.md](assets/project-context/.context/decisions.md) | 需要理解之前为什么这样做、为什么没选另一方案 | 重要方案被接受、否决，或旧决策被取代 |
+| [knowledge.md](assets/project-context/.context/knowledge.md) | 当前任务涉及已有的非显然约束或知识 | 发现并验证可复用知识，或收到重要纠正 |
+| [state.md](assets/project-context/.context/state.md) | 中断后继续对应工作线 | 重要阶段完成、需要交接，或阻塞与验证状态变化 |
+| [sources.md](assets/project-context/.context/sources.md) | 需要找依据、核实来源 | 证据位置、支持的结论、时效或访问条件变化 |
+| [candidates/](assets/project-context/.context/candidates/README.md) | 需要审视与任务相关的待确认假设 | 出现值得保留的推断，或需要确认、缩小、撤回它 |
+| [archive/](assets/project-context/.context/archive/README.md) | 需要追溯历史理由 | 旧内容退出活跃状态，但仍有保留价值且允许保留 |
+
+例如，“发现某个接口有文档没写出的限制”可以更新 `knowledge.md` 并链接证据；“决定采用另一方案”更新 `decisions.md`；“今天停在本地测试通过、端到端验证还没做”更新对应的 `state.md`。这些变化不要求其他文件一起重写。
+
+并行任务分别使用 `.context/state/<workstream>.md`，或继续使用已有 issue／PR；INDEX 指向各自入口，避免多个任务轮流覆盖同一个 `state.md`。
+
+**完整提供模板，不等于每次全部读取或全部填写。** 初始化后，INDEX 只列实际保留的资料；保留但尚未填写的模板标明未初始化，不作为项目事实。详细的采用规则见 [模板说明](assets/project-context/README.md)。
 
 已接受决策说明“应该怎样”，实时证据说明“现在怎样”。`memory.md` 是缓存，`.context/` 负责组织知识与指针；文件名不会让一条过期记录变成当前事实。
 

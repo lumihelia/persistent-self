@@ -1,5 +1,7 @@
 # Non-obvious project knowledge
 
+Read when the relevant domain or constraint affects the task. Update when evidence establishes, narrows, or corrects reusable scoped knowledge.
+
 Store constraints, important corrections, provider semantics, or scoped preferences that improve future decisions and cannot be cheaply reconstructed from existing sources.
 
 ## Entry fields

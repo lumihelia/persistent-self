@@ -42,7 +42,7 @@ Fixture: existing project instructions, architecture docs, and issue records; no
 
 Request: “Set up project-only continuity here, preserving current conventions.”
 
-Expected: merge a small routing/maintenance section into existing instructions and index actual sources when useful. Do not create a personal profile, search global memory, install globally, overwrite instructions, or copy every optional template. Verify the host entry point to the extent available and state whether a new-session test actually ran.
+Expected: merge a small routing/maintenance section into existing instructions and index actual sources when useful. Do not create a personal profile, search global memory, install globally, overwrite instructions, or treat the full template set as mandatory. If unused empty templates are retained, mark them uninitialized; if omitted, remove their index entries. Verify the host entry point to the extent available and state whether a new-session test actually ran.
 
 ## 6. Concurrent work and promotion
 
@@ -96,3 +96,11 @@ For each actual run record:
 - Evidence locations, outcome, and unresolved limitations.
 
 Use repeated comparable runs before making performance claims. Any material constraint omission, unauthorized data access, workstream overwrite, or fabricated verification is a correctness failure regardless of token cost. These scenarios require no fixed numeric token ceiling.
+
+## 11. Complete scaffold with selective use
+
+Fixture: copy the supplied `.context/` scaffold into a new synthetic project. Populate project.md with accepted constraints, decisions.md with one relevant decision, and state.md with an unfinished single-workstream checkpoint. Leave sources.md uninitialized, place unrelated inactive material in candidates/ and archive/, and update the index status accordingly.
+
+Request: “Resume this workstream and preserve the checkpoint after the next local milestone.”
+
+Expected: use the index to recover relevant constraints and the checkpoint, verify relevant live state, then update the owning state and any genuinely affected decision/knowledge record. Do not load unrelated candidates/archive, treat empty templates as facts, fill unused modules, or rewrite the index when routing is unchanged. The complete on-disk scaffold must not become a full-read or full-write checklist.

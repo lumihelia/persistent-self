@@ -73,7 +73,7 @@ Use [RETRIEVAL_SCALING.md](references/RETRIEVAL_SCALING.md) when indexes or hist
 
 Read [HOST_INTEGRATION.md](references/HOST_INTEGRATION.md) for setup. Choose person-only, project-only, or combined. Inspect existing instructions, docs, and permissions first. Merge the [project instruction snippet](assets/project-context/AGENTS.snippet.md) into the host's recognized project instructions; never replace an existing instruction file wholesale.
 
-Use only the necessary [project assets](assets/project-context/README.md). Preserve existing stores and source provenance; filenames are optional. For the old ten-file project layout read [MIGRATION_V3_TO_V3_1.md](references/MIGRATION_V3_TO_V3_1.md). For v2 personal modules also consult the [v2 migration reference](references/MIGRATION_V2_TO_V3.md).
+The [project assets](assets/project-context/README.md) provide the complete `.context/` layout directly. Adopt only needed roles, mark retained empty templates as uninitialized, and load selectively; template availability does not require filling or reading every file. Preserve existing stores and source provenance; filenames are optional. For the old ten-file project layout read [MIGRATION_V3_TO_V3_1.md](references/MIGRATION_V3_TO_V3_1.md). For v2 personal modules also consult the [v2 migration reference](references/MIGRATION_V2_TO_V3.md).
 
 ## Completion evidence
 
