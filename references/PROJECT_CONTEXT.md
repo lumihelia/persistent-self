@@ -63,7 +63,7 @@ Refresh stale descriptive claims, supersede replaced decisions, narrow overbroad
 
 ## Public and private context
 
-The public protocol does not require public instance data. A project can share approved project decisions in Git while keeping sensitive state in a private persistent store. Public indexes must not expose private names, URLs, local paths, or summaries. A private host instruction may identify an authorized private context root without publishing it.
+Choose storage according to who needs access. A project can share approved project decisions in Git while keeping sensitive state in a private persistent store. Public indexes must not expose private names, URLs, local paths, or summaries. A private host instruction may identify an authorized private context root without publishing it.
 
 Ignore rules only protect untracked files; inspect already tracked files and history before claiming privacy. Separate capability, authorization, default context, and runtime isolation. Shared tools do not imply permission to read every accessible store.
 

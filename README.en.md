@@ -8,7 +8,7 @@ File-based rules for AI-agent memory and project context, helping separate conve
 
 The project mode aims to **restore enough context to continue correctly in the next conversation, with as little necessary reading as possible.**
 
-The host supplies persistent storage, tools, instruction loading, and permissions. This repository supplies the protocol, Skill, neutral templates, and acceptance scenarios. Actual cross-session recovery and token cost need validation in the host.
+This repository provides a reusable Skill, personal-memory and project-context templates, and acceptance scenarios. It requires an agent tool or platform with persistent file access and support for project instructions, referred to below as the “host.”
 
 ## Choose a use case
 
@@ -43,7 +43,7 @@ A project can retain a large body of material while each conversation reads only
 
 “API complete” is short but may omit “only locally tested; not deployed.” Reducing reading must preserve information that changes the next action.
 
-Improve names, routing, source pointers, and duplicates first. Consider stronger retrieval only when repeated missed context or excessive irrelevant reading survives those repairs. More project files alone do not require a vector database. See [retrieval scale and cost](references/RETRIEVAL_SCALING.md). This version makes no token-saving percentage or cross-host effectiveness guarantee.
+Improve names, routing, source pointers, and duplicates first. Consider stronger retrieval only when repeated missed context or excessive irrelevant reading survives those repairs. More project files alone do not require a vector database. See [retrieval scale and cost](references/RETRIEVAL_SCALING.md) for methods and measurement guidance.
 
 ## Initialize project context
 
@@ -51,9 +51,9 @@ Ask the agent to use this Skill with the target project:
 
 > “Set up Persistent Self in project-only mode for this project. Inspect existing instructions, docs, and task records first. Reuse existing sources and create the smallest useful context recovery entry point. Preserve existing content and verify whether a fresh conversation can continue from a checkpoint.”
 
-Merge the [project instruction snippet](assets/project-context/AGENTS.snippet.md), then adopt templates according to existing project sources. **The repository directly supplies the complete [.context/ template](assets/project-context/.context/INDEX.md), matching the target project's layout.** No assembly from another directory is needed. Some file browsers hide directories beginning with a dot; the link opens the template entry point.
+Merge the [project instruction snippet](assets/project-context/AGENTS.snippet.md), then adopt templates according to existing project sources. The [.context/ template](assets/project-context/.context/INDEX.md) matches the target project's directory layout.
 
-The template supplies the structure below. A project can adopt all of it or only the roles it needs. When existing documents serve the same purpose, INDEX points to them directly. Within authorization, the agent inspects and merges the setup; users do not need to move files manually, and existing content must not be overwritten.
+A project can adopt the complete template or only the roles it needs. When existing documents serve the same purpose, INDEX points to them directly. The agent can inspect the current structure and merge the needed templates and instructions while preserving existing content.
 
 ```text
 project/
@@ -93,11 +93,9 @@ Parallel tasks use `.context/state/<workstream>.md` or existing issues/PRs. INDE
 
 Accepted decisions describe intended behavior; live evidence describes current behavior. `memory.md` is a cache, and `.context/` organizes knowledge and pointers. A filename cannot turn an outdated record into current fact.
 
-This repository's root [AGENTS.md](AGENTS.md) governs protocol contributors. Project users merge the snippet above; the two files have different purposes.
-
 ## Initialize personal memory
 
-Copy needed modules from the neutral [memory/](memory/INDEX.md) scaffold to a private persistent location and point host instructions there.
+Copy the [memory/](memory/INDEX.md) templates to a separate private directory, such as `~/.persistent-self/memory/`, and configure that path in host instructions. Keeping memory separate from the Skill installation directory helps prevent Skill updates from overwriting it. Enable modules as needed:
 
 | File | Purpose |
 | --- | --- |
@@ -109,17 +107,17 @@ Copy needed modules from the neutral [memory/](memory/INDEX.md) scaffold to a pr
 | `observations.md` | Candidate observations awaiting confirmation |
 | `archive.md` | Useful inactive history |
 
-Do not write real personal memory into the public Skill template directory. Candidate observations are not a trusted profile for durable personalization.
+`observations.md` holds observations awaiting confirmation. Once confirmed, the relevant content can enter established memory.
 
-## Maintenance and authority
+## Updating memory
 
-Persistence should have future value and fall within an explicit request, current task authorization, or an adopted maintenance policy. Project mode can maintain necessary state at meaningful milestones, corrections, blockers, or handoffs. It does not require writes after every turn and should not depend solely on an end-of-session hook that may miss interruptions.
+You can ask the agent to save, correct, or delete a memory, or enable ongoing maintenance in project instructions. Once enabled, the agent updates necessary state at meaningful milestones, corrections, blockers, or handoffs. Writes depend on future usefulness; files do not need updating after every turn.
 
 Distinguish confirmed content, directly observed facts, candidate inferences, superseded information, and inactive history. Preserve scope, source, and freshness for consequential entries. Repetition does not turn an agent inference into a personal fact or accepted project decision.
 
-When deletion is requested, remove the relevant active memory and derived summaries without keeping a hidden archive copy. Working-tree deletion does not erase Git history or backups. Report copies that cannot be handled and respect the authority needed for further deletion.
+Deleting a memory should remove the relevant entries and derived summaries. If the content entered Git history or backups, those copies need separate handling. The agent should explain what was deleted and where copies remain.
 
-**The public package contains rules and neutral templates.** Project sharing boundaries determine whether actual context enters Git or becomes public. Public indexes must not expose private source names, links, or local paths. Personal memory is private by default. Retrieval capability, data authorization, default context, and runtime isolation are separate boundaries.
+Personal memory is private by default. Teams can share project decisions and context they need in common while storing sensitive material separately. Source links and summaries in indexes should follow the same access boundaries.
 
 See the [memory model](references/MEMORY_MODEL.md) and [Skill protocol](SKILL.md).
 
@@ -127,13 +125,9 @@ See the [memory model](references/MEMORY_MODEL.md) and [Skill protocol](SKILL.md
 
 Install the whole package in a host-supported Skill location so relative references and assets remain available. Actual paths and instruction mechanisms depend on the current host; project use does not require global installation. See [HOST_INTEGRATION.md](references/HOST_INTEGRATION.md).
 
-Distinguish three acceptance claims:
+After setup, check the integration in a fresh session without the old conversation. Ask the agent to resume a workstream and observe whether it discovers project instructions, finds the matching checkpoint, and continues from the current state.
 
-1. Templates and instructions have been created.
-2. The host is configured to discover the entry point.
-3. A fresh session without the old conversation actually found the matching checkpoint and continued correctly.
-
-This repository supplies no universal session-start hook, database, background service, or conversation search. Hosts that cannot automatically load project instructions need an explicit entry point in each new session. Saving a file does not prove it was read.
+Persistent Self runs through the host's file and instruction mechanisms. Use automatic project-instruction loading when the host supports it; otherwise provide the project path or context entry point in the new session. Session hooks and conversation search are optional host capabilities.
 
 [Acceptance scenarios](evals/SCENARIOS.md) check both recovery of critical constraints and unnecessary reading. Actual token metrics must come from runs; character counts are only a reading-volume proxy.
 
@@ -146,6 +140,6 @@ v3.1 updates the project side from a ten-file scaffold to selective recovery and
 
 ## Design lineage and license
 
-Persistent Self was originally inspired by the modular-memory ideas in [soul.py](https://github.com/menonpg/soul.py). The project rules in this update come from Helia's context-maintenance practice in long-running project collaboration, adapted into a neutral protocol for general use. They include no personal runtime configuration or private project instances.
+Persistent Self was originally inspired by the modular-memory ideas in [soul.py](https://github.com/menonpg/soul.py). Its project-context rules developed through long-running agent collaboration.
 
 [MIT](LICENSE)

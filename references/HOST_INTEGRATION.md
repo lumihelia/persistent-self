@@ -10,11 +10,7 @@ The host supplies persistent file access, instruction loading, and permissions. 
 | Project-only | Project instruction snippet plus routing to project sources | Task-relevant project context; no personal memory dependency |
 | Combined | Both independently configured | Relevant authorized sources from each scope |
 
-Install the whole package in a skill location supported by the host so relative references remain available. Keep real instance data outside this public package and outside directories that package upgrades may replace. Project-local use does not require global installation.
-
-## Distribution integrations
-
-When distributing through BotLearn / SkillHunt or another catalog, keep distributor-specific facets and publishing metadata in that platform's supported publishing interface. Preserve the portable Skill frontmatter. Verify current distributor commands separately; protocol maintenance does not authorize publishing a catalog release.
+Install the whole package in a skill location supported by the host so relative references remain available. Keep memory in a separate persistent directory so package upgrades do not replace it. Project-local use does not require global installation.
 
 ## Personal memory
 
@@ -29,7 +25,7 @@ Load other modules only for the current task within authorized scope.
 Use persistent-self for authorized saves, corrections, review, and deletion.
 ```
 
-Do not place the user's real memory in the skill's neutral `memory/` scaffold.
+The installed `memory/` directory provides starter templates; configure the copied private directory as the live memory root.
 
 ## Project setup
 
@@ -55,7 +51,7 @@ Distinguish these claims:
 2. **Configured:** the chosen host is configured to discover the project instructions and sources.
 3. **Behavior observed:** a fresh session, given the project and current task without the old chat, actually found the appropriate checkpoint and resumed correctly.
 
-Record which was verified. The third requires observing a real session; file inspection proves only the first two to the extent inspected. The [scenarios](../evals/SCENARIOS.md) support this check. Do not publish token-saving percentages without actual measurements.
+Record which was verified. The third requires observing a real session; file inspection proves only the first two to the extent inspected. The [scenarios](../evals/SCENARIOS.md) support this check. Use host-reported token usage for cost comparisons; file size alone does not measure token savings.
 
 ## Git, sharing, and deletion
 
