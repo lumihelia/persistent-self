@@ -1,216 +1,129 @@
 # Persistent Self
 
-[中文](./README.md) · English
+[中文](README.md) · English
 
-A **file-based memory-governance skill** for AI agents. It defines what should persist across sessions, where it belongs, what is confirmed, what is still only a candidate observation, and how newer information supersedes older memory.
+File-based rules for AI-agent memory and project context, helping separate conversations recover the information needed to keep working with the same person or on the same project.
 
-**Current version:** `3.0.0`
+**Protocol version: `3.1.0`**
 
-Persistent Self does not provide a database, vector store, or cloud memory service. The host agent supplies durable file access. This repository provides the protocol, a portable Agent Skill, a neutral global-memory scaffold, and a project-context scaffold.
+The project mode aims to **restore enough context to continue correctly in the next conversation, with as little necessary reading as possible.**
 
-## What changed in v3
+The host supplies persistent storage, tools, instruction loading, and permissions. This repository supplies the protocol, Skill, neutral templates, and acceptance scenarios. Actual cross-session recovery and token cost need validation in the host.
 
-v3 separates several decisions that v2 mixed together:
+## Choose a use case
 
-```text
-current conversation
-   ↓
-is this worth persisting?
-   ↓
-┌───────────────────────┬────────────────────────┐
-│ Global memory         │ Project context        │
-│ durable across work   │ meaningful in one      │
-│ and projects          │ project                │
-└───────────────────────┴────────────────────────┘
-   ↓                            ↓
-confirmed / candidate       memory.md + .context/
-```
+| Mode | What continues | How to use it |
+| --- | --- | --- |
+| Person-oriented | User-confirmed preferences, collaboration rules, corrections, and cross-project goals | Initialize private personal memory and load selectively |
+| Project-oriented | Project goals, decisions, constraints, unfinished work, and verification boundaries | Configure a project context entry point and recover from checkpoints |
+| Combined | Personal collaboration and project continuity together | Configure each independently; load only relevant, authorized context |
 
-Four boundaries define the release:
+**Project mode works independently, without a personal profile or global-memory store.** Person-oriented describes a use case; global describes a storage scope. Repeated project preferences do not automatically become global personal facts.
 
-1. **Global memory is separate from project context.** Project state does not become global identity merely because it appears often.
-2. **Confirmed memory is separate from candidate inference.** Agent observations do not silently become facts.
-3. **Boot digests are separate from canonical sources.** A short startup summary points to precise context instead of replacing it.
-4. **Protocol is separate from instance data.** The public repository contains neutral templates; real personal memory stays in a private/local instance by default.
+## Returning to a project after a gap
 
-v3 keeps the selective-loading idea from v2 and adds scope, provenance, supersession, deletion, and privacy governance learned from longer real-world use.
+> “Find the last checkpoint for this project, recover the necessary context, and continue the work.”
 
-## Two memory scopes
+The agent uses project instructions, an INDEX, an optional short digest, or an existing issue/PR to locate the workstream matching the current request. The newest entry may belong to a different task, so timestamps alone cannot select it.
 
-### Global memory
+The checkpoint should recover the target, accepted constraints, stopping point, unfinished changes, what was verified, what still needs verification, and where to begin. The agent then checks facts that affect action, such as whether a branch merged, files still have changes, or a blocker remains.
 
-`memory/` is the neutral starter scaffold for cross-project durable memory:
+If a decision's rationale is missing, search the relevant decision and source. If verification evidence is missing, find the corresponding record. Each expansion of reading should answer a specific question. Stop when the next action is sufficiently grounded. State essential unrecoverable gaps instead of inventing history.
 
-```text
-memory/
-├── INDEX.md          # lightweight entry point and module summaries
-├── procedures.md     # confirmed durable behavioral rules
-├── profile.md        # confirmed stable facts and preferences
-├── priorities.md     # current cross-project priorities
-├── threads.md        # long-running cross-project threads
-├── observations.md   # unconfirmed candidate observations
-└── archive.md        # historical material worth retaining
-```
+See [project context](references/PROJECT_CONTEXT.md) for the full rules and [workstream rules](references/CONCURRENT_WORK.md) for parallel branches or tasks.
 
-`observations.md` is not a trusted profile. Candidate material must be confirmed before it becomes durable personalization.
+## Preserve context while controlling reading
 
-### Project context
+A project can retain a large body of material while each conversation reads only a relevant subset.
 
-Project-specific state follows this pattern:
+- **INDEX is a map.** It explains where sources live, when they matter, and whether freshness needs checking. It does not copy detailed content or require reading every link.
+- **Checkpoints preserve continuation state.** Replace stale content, retain evidence and unknowns, and avoid transcript or handoff diaries.
+- **Decisions and knowledge preserve reasons and sources.** Prefer links to existing docs, issues, and PRs rather than duplicate current truth.
+- **History is retrieved on demand.** Keep it off the default read path. Split into domain sub-indexes only when navigation becomes difficult.
 
-```text
-memory.md        # short boot digest; not canonical authority
-.context/        # canonical project context
-```
+“API complete” is short but may omit “only locally tested; not deployed.” Reducing reading must preserve information that changes the next action.
 
-A copyable scaffold lives in [`assets/project-context/`](./assets/project-context/). It includes project brief, current state, decision log, project-specific user model, agent roles, handoff notes, open questions, rejected ideas, next actions, and a source index.
-
-Small projects can keep only the modules they actually need.
-
-## Memory states
-
-Persistent Self v3 uses four states:
-
-- `confirmed` — directly stated or approved by the user, or established by a canonical project artifact;
-- `candidate` — an agent observation or inference awaiting confirmation;
-- `superseded` — replaced by newer confirmed information;
-- `archived` — no longer active but still useful as history.
-
-When a newer confirmed entry conflicts with older active memory, the newer truth supersedes the old one. Historical records may remain, but contradictory statements should not both stay active.
-
-## Provenance
-
-Durable memory should retain a lightweight answer to “why is this here?” A simple Markdown entry is enough:
-
-```markdown
-- 2026-09-05 · confirmed · user-correction — Prefer concise completion reports.
-```
-
-Candidate example:
-
-```markdown
-- 2026-09-05 · candidate · agent-observation · medium — May prefer async review over live coordination. Needs confirmation.
-```
-
-The goal is auditability, not turning Markdown into a database schema.
-
-## Write policy
-
-v3 no longer uses turn-count heuristics or fixed memory-decay timers. Persistence depends on the kind of information:
-
-- explicit save requests can create durable memory;
-- explicit corrections and durable decisions can become confirmed immediately;
-- inferred preferences, personality claims, and agent interpretations remain candidates;
-- project state goes to project context by default;
-- temporary emotions, one-off task details, and weak evidence stay session-only;
-- read the target module before writing so duplicates and conflicts are visible;
-- newer confirmed truth supersedes older active truth;
-- when the user asks to `forget` or `delete`, remove the active memory and derived summaries rather than preserving a hidden copy in an archive.
-
-See [`SKILL.md`](./SKILL.md) and [`references/MEMORY_MODEL.md`](./references/MEMORY_MODEL.md) for the full protocol.
-
-## Installation
-
-Persistent Self follows the current [Agent Skills](https://agentskills.io/) structure: a skill directory with `SKILL.md`, plus optional references and assets loaded on demand.
-
-Install the **whole repository contents** as the `persistent-self/` skill directory so the skill can load its references and project-context assets when needed.
-
-Common user-level locations include:
-
-```text
-# generic / supported by some clients
-~/.agents/skills/persistent-self/
-
-# Codex
-~/.codex/skills/persistent-self/
-
-# Claude Code
-~/.claude/skills/persistent-self/
-
-# Cursor
-~/.cursor/skills/persistent-self/
-
-# Windsurf
-~/.codeium/windsurf/skills/persistent-self/
-
-# Hermes
-~/.hermes/skills/persistent-self/
-```
-
-Project-level skill roots are also supported by several hosts. See [`references/HOST_INTEGRATION.md`](./references/HOST_INTEGRATION.md) for lifecycle and storage guidance.
-
-## Initialize global memory
-
-Copy the `memory/` scaffold into a **private, durable location**, then tell the host agent where that memory root lives.
-
-A typical session-start load is small:
-
-1. read `INDEX.md`;
-2. read `procedures.md`;
-3. selectively load other modules relevant to the current task.
-
-Do not inject the entire memory directory into every request.
+Improve names, routing, source pointers, and duplicates first. Consider stronger retrieval only when repeated missed context or excessive irrelevant reading survives those repairs. More project files alone do not require a vector database. See [retrieval scale and cost](references/RETRIEVAL_SCALING.md). This version makes no token-saving percentage or cross-host effectiveness guarantee.
 
 ## Initialize project context
 
-Copy:
+Ask the agent to use this Skill with the target project:
+
+> “Set up Persistent Self in project-only mode for this project. Inspect existing instructions, docs, and task records first. Reuse existing sources and create the smallest useful context recovery entry point. Preserve existing content and verify whether a fresh conversation can continue from a checkpoint.”
+
+Merge the [project instruction snippet](assets/project-context/AGENTS.snippet.md) and use [project templates](assets/project-context/README.md) as needed. Do not overwrite an existing project with the entire directory.
+
+The smallest setup can be project instructions and an index pointing to existing sources. This is an optional expansion example, not an installation checklist:
 
 ```text
-assets/project-context/memory.md
-assets/project-context/.context/
+project/
+├── AGENTS.md                 # or other host-recognized project instructions
+├── memory.md                 # optional short recovery-entry cache
+└── .context/
+    ├── INDEX.md              # routes to sources that actually exist
+    ├── project.md            # optional; existing project docs can serve this role
+    ├── decisions.md          # optional; existing decision records can serve this role
+    ├── knowledge.md          # optional; non-obvious constraints and corrections
+    ├── sources.md            # optional; provenance pointers
+    └── state/                # only when file-based parallel state is needed
+        └── <workstream>.md   # one workstream can use state.md or an existing issue/PR
 ```
 
-into the project root.
+Accepted decisions describe intended behavior; live evidence describes current behavior. `memory.md` is a cache, and `.context/` organizes knowledge and pointers. A filename cannot turn an outdated record into current fact.
 
-`memory.md` stays short and startup-oriented. Precise decisions, state, sources, and history live under `.context/`.
+This repository's root [AGENTS.md](AGENTS.md) governs protocol contributors. Project users merge the snippet above; the two files have different purposes.
 
-Project context can contain private information. A public repository should not automatically publish project-specific user data, internal decisions, or private source notes merely because it uses this scaffold.
+## Initialize personal memory
 
-## Migrating from v2
+Copy needed modules from the neutral [memory/](memory/INDEX.md) scaffold to a private persistent location and point host instructions there.
 
-The old default modules `identity / salience / themes / discussions / patterns / growth` are not part of the v3 starter layout.
+| File | Purpose |
+| --- | --- |
+| `INDEX.md` | Lightweight routing |
+| `procedures.md` | Confirmed collaboration rules, loaded when applicable |
+| `profile.md` | User-confirmed stable facts and preferences |
+| `priorities.md` | Cross-project priorities |
+| `threads.md` | Long-running cross-project questions or workstreams |
+| `observations.md` | Candidate observations awaiting confirmation |
+| `archive.md` | Useful inactive history |
 
-Migration rules:
+Do not write real personal memory into the public Skill template directory. Candidate observations are not a trusted profile for durable personalization.
 
-- `procedures.md` → keep confirmed durable rules;
-- `identity.md` → move only explicitly confirmed, stable content into `profile.md`;
-- `salience.md` → move cross-project priorities into `priorities.md`;
-- `threads.md` → keep cross-project threads global; move project-specific threads into `.context/`;
-- `patterns.md` / `growth.md` → review as candidates instead of importing them as user facts;
-- `discussions.md` → keep only durable conclusions in active memory; otherwise preserve as history/provenance if useful.
+## Maintenance and authority
 
-**Never overwrite an existing `memory.md`, memory directory, or `.context/` during setup.** Preserve the source, migrate, verify, then retire the old structure.
+Persistence should have future value and fall within an explicit request, current task authorization, or an adopted maintenance policy. Project mode can maintain necessary state at meaningful milestones, corrections, blockers, or handoffs. It does not require writes after every turn and should not depend solely on an end-of-session hook that may miss interruptions.
 
-See [`references/MIGRATION_V2_TO_V3.md`](./references/MIGRATION_V2_TO_V3.md).
+Distinguish confirmed content, directly observed facts, candidate inferences, superseded information, and inactive history. Preserve scope, source, and freshness for consequential entries. Repetition does not turn an agent inference into a personal fact or accepted project decision.
 
-## Current boundaries
+When deletion is requested, remove the relevant active memory and derived summaries without keeping a hidden archive copy. Working-tree deletion does not erase Git history or backups. Report copies that cannot be handled and respect the authority needed for further deletion.
 
-- No database, vector store, or background service.
-- No universal session-start hook.
-- Conversation search is optional; the skill no longer assumes a tool named `session_search` exists.
-- Real global-memory instances should remain private.
-- Whether project context belongs in Git depends on the project's privacy boundary.
-- Selective loading is a design principle; actual context cost depends on host, model, and content.
+**The public package contains rules and neutral templates.** Project sharing boundaries determine whether actual context enters Git or becomes public. Public indexes must not expose private source names, links, or local paths. Personal memory is private by default. Retrieval capability, data authorization, default context, and runtime isolation are separate boundaries.
 
-## Repository map
+See the [memory model](references/MEMORY_MODEL.md) and [Skill protocol](SKILL.md).
 
-```text
-SKILL.md                     # v3 execution protocol
-memory/                      # neutral global-memory scaffold
-references/
-  MEMORY_MODEL.md            # scope / state / provenance / privacy
-  HOST_INTEGRATION.md        # host integration
-  MIGRATION_V2_TO_V3.md      # v2 → v3 migration
-assets/project-context/      # copyable project memory.md + .context/
-README.md                    # Chinese overview
-README.en.md                 # English overview
-LICENSE                      # MIT
-```
+## Host integration and verification
 
-## Design lineage
+Install the whole package in a host-supported Skill location so relative references and assets remain available. Actual paths and instruction mechanisms depend on the current host; project use does not require global installation. See [HOST_INTEGRATION.md](references/HOST_INTEGRATION.md).
 
-Persistent Self was originally inspired by the modular-memory ideas in [soul.py](https://github.com/menonpg/soul.py). v3 also incorporates later practice from long-running agent collaboration: lightweight boot digests, canonical project context, confirmed/candidate separation, traceable updates, and global/project scope separation.
+Distinguish three acceptance claims:
 
-## License
+1. Templates and instructions have been created.
+2. The host is configured to discover the entry point.
+3. A fresh session without the old conversation actually found the matching checkpoint and continued correctly.
+
+This repository supplies no universal session-start hook, database, background service, or conversation search. Hosts that cannot automatically load project instructions need an explicit entry point in each new session. Saving a file does not prove it was read.
+
+[Acceptance scenarios](evals/SCENARIOS.md) check both recovery of critical constraints and unnecessary reading. Actual token metrics must come from runs; character counts are only a reading-volume proxy.
+
+## Migration
+
+v3.1 updates the project side from a ten-file scaffold to selective recovery and workstream-owned state. Existing filenames may remain; the new semantics and routing matter. Inspect and preserve originals, migrate by source and scope, verify, and only then retire old structure. Installation does not automatically migrate user data.
+
+- [v3.0 → v3.1 project migration](references/MIGRATION_V3_TO_V3_1.md)
+- [Historical v2 personal-memory migration](references/MIGRATION_V2_TO_V3.md): project material can move directly into the current structure without creating the intermediate ten-file layout.
+
+## Design lineage and license
+
+Persistent Self was originally inspired by the modular-memory ideas in [soul.py](https://github.com/menonpg/soul.py). The project rules in this update come from Helia's context-maintenance practice in long-running project collaboration, adapted into a neutral protocol for general use. They include no personal runtime configuration or private project instances.
 
 [MIT](LICENSE)

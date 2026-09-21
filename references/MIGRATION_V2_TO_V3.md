@@ -1,5 +1,7 @@
 # Migration: Persistent Self v2 → v3
 
+This document preserves the historical v2 → v3 mapping. For a current installation, route project material directly using [v3.1 migration guidance](MIGRATION_V3_TO_V3_1.md); do not create the intermediate ten-file layout.
+
 v3 changes both the module set and the memory-governance model. Treat migration as classification, not file renaming.
 
 ## Safety rule

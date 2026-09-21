@@ -1,33 +1,13 @@
-# Project Memory — Boot Digest
+# Project memory — optional boot cache
 
-Last updated: not initialized
+Last refreshed: not initialized
 
-This file is a short startup digest. It is **not** canonical authority. Precise state, decisions, sources, and history live under `.context/`.
+Use only if this short cache improves continuation. It is not authoritative evidence of current repository/runtime state. Keep detailed decisions and workstream state in their owning sources.
 
-## Project
+## Relevant entry points
 
-- Name: [project name]
-- Goal: [one sentence]
-- Current phase: [phase]
+Link to the actual project context router and active workstream checkpoint(s). Do not assume one global current state for concurrent work.
 
-## Current state
+## Continuation notes
 
-[3–6 lines summarizing what is currently true and operationally relevant.]
-
-## Active constraints
-
-- [constraint]
-
-## Next actions
-
-1. [next action]
-
-## Canonical context
-
-- `.context/INDEX.md`
-- `.context/01_current_state.md`
-- `.context/02_decision_log.md`
-- `.context/08_next_actions.md`
-- `.context/09_source_index.md`
-
-If this digest conflicts with `.context/`, resolve from the canonical file and update this digest afterward.
+Record only a load-bearing change, unresolved blocker, or next meaningful checkpoint that helps locate the work. Include source pointers. Revalidate time-sensitive claims before relying on them; replace stale notes rather than append a diary.

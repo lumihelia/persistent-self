@@ -1,18 +1,17 @@
-# Project Context Index
+# Project context index
 
-Last updated: not initialized
+This is a routing map, not a preload list. Populate it with actual sources; remove these authoring notes after setup. Keep private source metadata out of public indexes.
 
-`.context/` is the canonical project context. Load only the files relevant to the current task.
+## Sources
 
-- `00_project_brief.md` — durable purpose, scope, non-goals
-- `01_current_state.md` — what is true now
-- `02_decision_log.md` — accepted decisions and supersession
-- `03_user_model.md` — project-specific collaboration constraints
-- `04_agent_roles.md` — agent/tool responsibilities
-- `05_handoff_log.md` — continuity notes across sessions/agents
-- `06_open_questions.md` — unresolved questions and tensions
-- `07_rejected_ideas.md` — intentionally rejected paths
-- `08_next_actions.md` — current executable next actions
-- `09_source_index.md` — canonical files, references, evidence
+| Source / section | Function | Read when | Freshness / status |
+| --- | --- | --- | --- |
 
-Keep `memory.md` short. Update canonical files first.
+Add links to existing project meaning/invariants, relevant decisions, non-obvious knowledge, and evidence only as needed. State whether a source describes accepted intent, observed reality, candidates, or history when that distinction matters. Link to sections instead of copying their contents.
+
+## Workstream entry points
+
+| Workstream / task | Checkpoint or issue/PR | Scope / revision if relevant | Last refreshed |
+| --- | --- | --- | --- |
+
+List real active workstreams only. Locate the one matching the request; newest does not necessarily mean relevant. Revalidate volatile state. If this index becomes hard to navigate, route to domain sub-indexes rather than expanding every source here.

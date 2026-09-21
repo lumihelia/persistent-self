@@ -1,255 +1,80 @@
 ---
 name: persistent-self
-description: Maintain durable, user-governed memory across AI-agent sessions using file-based global memory and project-local context. Use when saving, updating, reviewing, forgetting, migrating, or recovering long-term memory, durable corrections, decisions, preferences, or project state.
+description: Maintain user-governed personal memory and project continuity across AI-agent sessions. Use for saving, correcting, forgetting, migrating, or recovering durable preferences, decisions, constraints, and unfinished project work from checkpoints.
 license: MIT
-compatibility: Requires persistent file read/write access. Lifecycle hooks and conversation search are optional; hosts without them can use the same protocol manually.
+compatibility: Requires persistent file access and a host instruction entry point. Lifecycle hooks and conversation search are optional.
 metadata:
   author: Helia
-  version: "3.0.0"
+  version: "3.1.0"
 ---
 
 # Persistent Self
 
-Persistent Self is a memory-governance protocol for AI agents with durable file access. It defines how to scope, load, classify, update, supersede, review, and delete memory. It does not provide storage, lifecycle hooks, or conversation search by itself.
+A file-based continuity protocol. The host supplies storage, tools, instruction loading, and permissions. Installing this skill does not itself activate lifecycle hooks or share conversation history.
 
-## Core invariants
+## Choose the use case
 
-1. **The user governs durable memory.** Explicit requests to save, correct, forget, or delete take priority.
-2. **Global memory and project context are separate scopes.** Project-specific state stays with the project unless it has a clear cross-project reason to become global memory.
-3. **Confirmed memory and model inference are separate states.** An inference never becomes a durable fact silently.
-4. **Provenance matters.** Durable entries should retain enough source information to distinguish user statements, corrections, artifacts, and agent observations.
-5. **New truth supersedes old truth.** Do not keep contradictory statements simultaneously active.
-6. **Load selectively.** A small boot digest points to canonical context; it is not a reason to inject the whole memory store into every session.
-7. **Private by default.** Do not place personal memory in a public repository or externally share it unless the user explicitly intends that boundary.
-8. **Read before write.** Check the existing target module and relevant conflicting entries before appending anything.
+- **Person-oriented:** preserve user-confirmed preferences, corrections, and cross-project goals in a configured private memory root. The neutral starter is [memory/INDEX.md](memory/INDEX.md).
+- **Project-oriented:** recover the decisions, constraints, evidence, and unfinished work needed to continue one project. This mode works independently, without a personal profile or global-memory root.
+- **Combined:** use both selectively. Project information remains local; personal context is loaded only when relevant and authorized. A project-specific choice does not automatically become a global preference.
 
-Read `references/MEMORY_MODEL.md` when implementing or changing the memory schema.
+Person-oriented is a use case; global is a storage scope. Scope each item as global, project, workstream, or session-only. Prefer the narrowest useful scope.
 
-## Memory scopes
+## Invariants
 
-Classify every durable item before writing it.
+- Current user instructions and applicable project contracts govern the work. Memory does not create permission to inspect, write, publish, or share data.
+- Distinguish desired behavior from observed behavior. Accepted decisions govern intent; live code, tests, and runtime evidence establish current implementation. A canonical filename does not make every claim in it authoritative or current.
+- Keep confirmed statements, observed facts, and candidate interpretations distinguishable. Agent inference never silently becomes a personal fact or accepted project decision.
+- Persist only information that will prevent repeated work, preserve a meaningful decision or correction, protect an invariant, or enable continuation. Do not save raw transcripts, hidden reasoning, secrets, or speculative sensitive traits.
+- Read before writing; reconcile duplicates and conflicts. Preserve source, scope, and freshness where they change future decisions. Correct or supersede stale active context instead of appending contradictory truth.
+- Shared durable project knowledge and workstream-local state have different owners. Do not let the last writer overwrite another workstream's checkpoint.
+- The public package contains neutral templates. Real personal memory is private by default; project context follows the project's explicit sharing boundary.
 
-### Global memory
+## Load / recover
 
-Use for information that should survive across projects and conversations, such as:
+For personal memory, locate the configured root, read its index, and load relevant modules. Load procedures when applicable; observations remain candidates. Project-only work does not require finding a personal memory root.
 
-- explicit behavioral corrections;
-- stable preferences the user has clearly stated;
-- durable cross-project goals or constraints;
-- long-running cross-project threads;
-- user-approved facts that repeatedly matter across contexts.
+For a project, start from the current request, applicable project instructions, and enough live evidence to understand the task. Use `.context/INDEX.md` as a routing map when present. Existing docs and task systems can fulfill the same roles; do not insist on new filenames.
 
-The repository's `memory/` directory is a neutral starter scaffold for this scope.
+When asked to continue after a gap, locate the matching workstream checkpoint through the index, optional `memory.md`, or existing issue/PR. Recover the target, accepted constraints, current position, evidence, unresolved work, and next checkpoint. Revalidate volatile claims before relying on them. Search for specific missing information, widen only when needed, and stop retrieving once the next action is sufficiently grounded. If an essential gap cannot be recovered, state it precisely instead of inventing history.
 
-### Project context
+Read [PROJECT_CONTEXT.md](references/PROJECT_CONTEXT.md) for checkpoint recovery, source authority, and selective loading; [CONCURRENT_WORK.md](references/CONCURRENT_WORK.md) when several workstreams coexist. Do not preload all references.
 
-Use for information whose meaning depends on one project, repository, product, research program, or workstream, such as:
+## Save / update
 
-- current implementation state;
-- project decisions and rejected options;
-- project-specific user constraints;
-- next actions and open questions;
-- source indexes and handoff notes.
+Write when explicitly requested, when a durable correction or decision is made within the authorized task, or under a knowingly enabled host/project maintenance policy. A skill invocation does not authorize unrelated memory collection.
 
-The recommended project pattern is:
+Route to an existing authoritative document when one already owns the information. Otherwise use the smallest useful project template:
 
-```text
-memory.md        # short boot digest; not canonical authority
-.context/        # canonical project context
-```
+- accepted purpose and invariants → project docs or `project.md`;
+- accepted/rejected/superseded decisions with reasons → decision records or `decisions.md`;
+- non-obvious constraints and corrections → `knowledge.md`;
+- unfinished work and verification boundaries → the owning issue/PR or workstream checkpoint;
+- provenance → source links or `sources.md`;
+- potentially useful, non-sensitive inference → clearly marked candidates.
 
-A copyable scaffold lives under `assets/project-context/`.
+Dates and provenance can be lightweight. Observed implementation facts need evidence and freshness; an observation does not establish user approval. Persist direct user corrections within scope without a mandatory candidate queue. Refresh routing and optional boot digests only when the change affects discovery or continuation.
 
-### Session-only context
+For global-memory states, promotion, and deletion, read [MEMORY_MODEL.md](references/MEMORY_MODEL.md). Project lessons do not become global merely through repetition; promotion requires an authorized cross-project purpose and must preserve data boundaries.
 
-Keep information in the current conversation when it is temporary, one-off, weakly supported, or useful only for the current task. Do not create durable memory merely because something was mentioned.
+## Forget / delete
 
-When scope is ambiguous, prefer the narrower scope.
+Within the authorized scope, remove the requested information from active entries and derived indexes/digests. Do not keep a hidden archive copy of information the user asked to forget. Distinguish deletion from retiring an outdated item with useful historical value.
 
-## Memory states
+Check for known derived copies and report inaccessible stores or version-history retention. Removing a working-tree file does not erase Git history, backups, or other accounts; do not claim complete erasure or rewrite shared history without authority.
 
-Use these states consistently:
+## Review / maintain
 
-- **confirmed** — directly stated or approved by the user, established by an authoritative project artifact, or recorded from an explicit correction/decision.
-- **candidate** — a potentially useful agent observation or inference that has not been confirmed.
-- **superseded** — replaced by newer confirmed information; retain only when an audit trail is useful.
-- **archived** — no longer active but worth retaining as history.
+Review when stale context, repeated retrieval failures, conflicts, or explicit requests justify it. Consolidate duplicates, narrow broad claims, refresh evidence, and retire superseded material with useful provenance. Preserve unresolved disagreements. Age alone does not invalidate a decision. Do not create a diary or maintenance work after every turn.
 
-Candidates do not guide durable personalization as if they were facts. Store them in `memory/observations.md` or a project inbox until reviewed.
+Use [RETRIEVAL_SCALING.md](references/RETRIEVAL_SCALING.md) when indexes or history become hard to navigate. Improve file organization and targeted search before introducing infrastructure. Reduced reading is useful only if important constraints are still recovered.
 
-Do not infer or store sensitive personal attributes as candidates. If the user explicitly asks to preserve sensitive information, store only the minimum necessary content and keep it private.
+## Initialize / migrate
 
-## Modes
+Read [HOST_INTEGRATION.md](references/HOST_INTEGRATION.md) for setup. Choose person-only, project-only, or combined. Inspect existing instructions, docs, and permissions first. Merge the [project instruction snippet](assets/project-context/AGENTS.snippet.md) into the host's recognized project instructions; never replace an existing instruction file wholesale.
 
-Persistent Self has five operating modes:
+Use only the necessary [project assets](assets/project-context/README.md). Preserve existing stores and source provenance; filenames are optional. For the old ten-file project layout read [MIGRATION_V3_TO_V3_1.md](references/MIGRATION_V3_TO_V3_1.md). For v2 personal modules also consult the [v2 migration reference](references/MIGRATION_V2_TO_V3.md).
 
-1. **Load / recall**
-2. **Save / update**
-3. **Forget / delete**
-4. **Review / calibrate**
-5. **Initialize / migrate**
+## Completion evidence
 
-Choose the mode from the user's request and the current host capabilities.
-
-## Mode 1 — Load / recall
-
-### Global memory
-
-1. Locate the configured global memory root.
-2. Read `INDEX.md` first.
-3. Read `procedures.md` when durable behavioral rules should apply.
-4. Load only the additional modules relevant to the current task.
-5. Treat `observations.md` as candidate material, not confirmed truth.
-6. Do not announce loaded memory unless the user asks how continuity was established.
-
-### Project context
-
-1. Read the project's `memory.md` boot digest when present.
-2. Treat `.context/` as canonical authority when the digest and context disagree.
-3. Read `.context/INDEX.md`, then only the files needed for the current task.
-4. For exact decisions, state, source provenance, or rejected ideas, consult the corresponding canonical file instead of relying on the digest.
-
-If the host provides conversation search, use it only when file memory is insufficient or when provenance requires recovery from prior dialogue. Do not assume a tool named `session_search` exists.
-
-## Mode 2 — Save / update
-
-Trigger this mode when the user explicitly asks to remember/save/update something, when a durable correction or decision is made, or when host policy explicitly authorizes automatic memory maintenance.
-
-Before writing:
-
-1. Identify scope: global, project, or session-only.
-2. Identify kind: procedure, profile fact/preference, priority, thread, project state, decision, source, observation, or other project-local context.
-3. Identify state: confirmed or candidate.
-4. Read the target module and any likely conflicting entry.
-5. Check for duplication, contradiction, and existing supersession.
-
-Write rules:
-
-- Explicit user statements, corrections, and decisions may be written as confirmed.
-- Facts taken from an authoritative project artifact may be written as confirmed within that project scope.
-- Agent interpretations, personality judgments, inferred preferences, or pattern claims remain candidate unless the user confirms them.
-- A newer confirmed entry that conflicts with an older active entry supersedes the old entry. Update the active module and preserve history only where useful.
-- Project state goes to project context by default. Promote it to global memory only when it clearly matters across projects.
-- Keep boot digests short. Update the canonical source first, then refresh the digest if the change affects startup context.
-
-After writing, report concisely what scope was updated, which files changed, and whether anything remains candidate.
-
-## Project-context routing
-
-When a project uses the `memory.md + .context/` pattern, route updates as follows:
-
-- `.context/00_project_brief.md` — durable project purpose, scope, and non-goals.
-- `.context/01_current_state.md` — current implementation/research state and verified status.
-- `.context/02_decision_log.md` — accepted decisions, date, rationale, and supersession.
-- `.context/03_user_model.md` — project-specific collaboration constraints; do not duplicate the global profile without need.
-- `.context/04_agent_roles.md` — agent/tool responsibilities and handoff boundaries.
-- `.context/05_handoff_log.md` — concise continuity notes between working sessions or agents.
-- `.context/06_open_questions.md` — unresolved questions and decision tensions.
-- `.context/07_rejected_ideas.md` — intentionally rejected paths and why they were rejected.
-- `.context/08_next_actions.md` — current executable next actions.
-- `.context/09_source_index.md` — canonical files, references, evidence, and source provenance.
-
-`memory.md` is a boot digest. It must not silently become the canonical authority for detailed facts that belong in `.context/`.
-
-## Mode 3 — Forget / delete
-
-When the user asks to forget or delete a memory:
-
-1. Locate every active occurrence in the relevant scope.
-2. Remove it from active memory.
-3. Update indexes and boot digests that refer to it.
-4. Do not preserve a hidden copy in `archive.md` when the request is to forget/delete the information itself.
-5. If the request is only to retire an outdated item while preserving history, archive or supersede it instead.
-6. Report what was removed and whether any derived summaries were also updated.
-
-Deletion intent is stronger than archival intent.
-
-## Mode 4 — Review / calibrate
-
-Use review mode for memory hygiene, not constant self-commentary.
-
-Check for:
-
-- confirmed entries that conflict;
-- candidates waiting for review;
-- project facts that escaped into global memory;
-- duplicated information across modules;
-- stale priorities or threads;
-- boot digests that no longer match canonical context;
-- entries with missing provenance;
-- personal data stored in public or shared locations.
-
-Age alone does not make a memory false. Mark items for review based on changed evidence, inactivity, or project completion rather than fixed decay timers.
-
-Do not auto-delete stale items. Ask for confirmation when the correct action is not established by newer evidence.
-
-## Mode 5 — Initialize / migrate
-
-### New global memory
-
-Copy the neutral `memory/` scaffold into a private persistent location. Initialize only the modules that are actually needed.
-
-### New project context
-
-Copy `assets/project-context/memory.md` and its `.context/` directory into the project. Keep the boot digest short and use `.context/` as canonical authority.
-
-### Existing memory
-
-Never overwrite an existing `memory.md`, memory directory, or project context as a setup shortcut.
-
-For v2 migration or any existing system:
-
-1. Inventory current files and active memory.
-2. Preserve a backup or untouched source copy.
-3. Read `references/MIGRATION_V2_TO_V3.md`.
-4. Classify each entry by scope, kind, state, and provenance.
-5. Move project-specific material into project context.
-6. Move unsupported inferences into candidates or drop them with the user's approval.
-7. Verify the migrated store before retiring the old structure.
-
-## Host portability
-
-The skill is intentionally host-agnostic.
-
-- Use the host's normal file tools for reads and writes.
-- Use lifecycle hooks when available; otherwise perform load/write steps when explicitly invoked.
-- Use the host's current-time capability when timestamps matter.
-- Use conversation search only when the host provides it.
-- Keep host-specific setup out of the memory data itself.
-
-Read `references/HOST_INTEGRATION.md` when installing the protocol into a new agent host.
-
-## Entry style
-
-Keep durable entries compact and auditable. A simple Markdown entry is enough:
-
-```markdown
-- 2026-09-05 · confirmed · user-correction — Prefer concise completion reports.
-```
-
-Candidate example:
-
-```markdown
-- 2026-09-05 · candidate · agent-observation · medium — May prefer async review over live coordination. Needs confirmation.
-```
-
-Do not create elaborate schemas when a short source-marked entry is sufficient.
-
-## Completion contract
-
-After a memory-changing operation, report:
-
-1. Scope changed: global / project.
-2. Files changed.
-3. Confirmed vs candidate status of new material.
-4. Any superseded or deleted item.
-5. Any unresolved conflict or migration risk.
-
-Keep the report short.
-
-## References
-
-- `references/MEMORY_MODEL.md` — scopes, states, provenance, conflict handling, privacy.
-- `references/HOST_INTEGRATION.md` — how to attach the protocol to a host agent.
-- `references/MIGRATION_V2_TO_V3.md` — migration from the v2 module set and other existing stores.
-- `assets/project-context/` — copyable project-local context scaffold.
+After a change, report the scope and files updated, material candidate/supersession/deletion status, and unresolved limitations. For setup, distinguish template creation, instruction configuration, and observed fresh-session recovery. Do not claim automatic inheritance or token savings without measured evidence. Behavioral acceptance scenarios are in [evals/SCENARIOS.md](evals/SCENARIOS.md).
