@@ -80,7 +80,7 @@ Age alone does not change evidence state.
 ## 6. Privacy
 
 - Global personal memory should default to a private local or private-account location.
-- Public repositories should contain templates, not live personal memory.
+- Keep live personal memory separate from the Skill installation. Before sharing any context, check its contents and source metadata against the intended audience and the user's authorization.
 - Do not infer or store sensitive personal attributes as candidate observations.
 - Store secrets, credentials, tokens, private keys, and authentication material outside memory files.
 - If a host can expose memory to other agents or users, sharing permission is a separate decision from confirmation. Confirmed does not imply shareable.

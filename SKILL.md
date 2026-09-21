@@ -28,7 +28,7 @@ Person-oriented is a use case; global is a storage scope. Scope each item as glo
 - Persist only information that will prevent repeated work, preserve a meaningful decision or correction, protect an invariant, or enable continuation. Do not save raw transcripts, hidden reasoning, secrets, or speculative sensitive traits.
 - Read before writing; reconcile duplicates and conflicts. Preserve source, scope, and freshness where they change future decisions. Correct or supersede stale active context instead of appending contradictory truth.
 - Shared durable project knowledge and workstream-local state have different owners. Do not let the last writer overwrite another workstream's checkpoint.
-- The public package contains neutral templates. Real personal memory is private by default; project context follows the project's explicit sharing boundary.
+- Keep personal memory in a configured private store separate from the Skill installation. Project context follows the project's explicit sharing boundary.
 
 ## Load / recover
 

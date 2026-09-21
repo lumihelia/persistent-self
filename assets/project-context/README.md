@@ -1,6 +1,6 @@
 # Project context templates
 
-The complete neutral `.context/` template is provided directly in this directory, using the same layout as a target project. There is no separate directory to assemble into `.context/`.
+The complete neutral `.context/` template is provided directly in this directory, using the same layout as a target project.
 
 ```text
 project-context/
@@ -45,4 +45,4 @@ Adapt [INDEX.md](.context/INDEX.md) to actual project sources. Replace a templat
 
 The supplied `state.md` is the single-workstream checkpoint template. If several workstreams coexist, adapt its contents to `.context/state/<workstream>.md`, or use existing issues/PRs instead. Preserve each stream's identity and evidence. Update INDEX to the chosen entry points; do not keep a second aggregate `state.md` that competes with the owning records.
 
-Candidate and archive directories are available when useful; small projects can use clearly marked entries in existing records. Public templates do not make populated instance data public. Keep private context and private routing within their authorized stores.
+Candidate and archive directories are available when useful; small projects can use clearly marked entries in existing records. Choose the sharing scope when populating the templates. Keep private context and private routing within their authorized stores.
