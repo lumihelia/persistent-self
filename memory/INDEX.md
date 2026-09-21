@@ -5,7 +5,7 @@ Last reviewed: not initialized
 
 This file is the lightweight entry point for global memory. Keep it short. It summarizes where durable context lives; it is not the canonical source for detailed entries.
 
-## Always load
+## Load when applicable
 
 ### procedures.md
 Confirmed behavioral rules and corrections that should apply across conversations.
@@ -31,6 +31,6 @@ Superseded or inactive historical material. Do not load by default.
 
 ## Notes
 
-- Project-specific state belongs in the project's `memory.md + .context/`, not here.
+- Project-specific state belongs in the project's existing sources or indexed project context, not here.
 - Update these summaries when module purpose or active content changes materially.
 - Do not copy detailed memory into this index merely to make it feel complete.

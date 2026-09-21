@@ -1,215 +1,151 @@
 # Persistent Self
 
-中文 · [English](./README.en.md)
+中文 · [English](README.en.md)
 
-一个面向 AI Agent 的**文件型长期记忆治理 Skill**。它负责决定什么值得跨会话保存、保存到哪里、哪些内容已经确认、哪些仍只是候选观察，以及旧信息如何被新信息覆盖。
+为 AI Agent 提供文件型长期记忆与项目上下文维护规则，让不同对话能够找回必要信息，继续与同一个人协作，或继续推进同一个项目。
 
-**当前版本：** `3.0.0`
+**协议版本：`3.1.0`**
 
-Persistent Self 本身不提供数据库、向量检索或云端记忆服务。真正的持久化由宿主 Agent 的文件系统完成；这个仓库提供协议、可复用 Skill、中性 global-memory scaffold，以及项目级 context scaffold。
+项目模式的目标是：**让下一次对话以尽可能少的必要读取，恢复足以正确继续工作的上下文。**
 
-## v3 的核心变化
+宿主负责文件持久化、工具、指令加载和权限。本仓库提供协议、Skill、中性模板与验收场景；实际跨会话恢复和 token 开销需要在宿主中验证。
 
-v3 把长期记忆拆成几个彼此独立的判断层：
+## 选择使用场景
 
-```text
-当前对话
-   ↓
-判断是否值得持久化
-   ↓
-┌───────────────────────┬────────────────────────┐
-│ Global memory         │ Project context        │
-│ 跨项目长期成立         │ 只在当前项目中成立       │
-└───────────────────────┴────────────────────────┘
-   ↓                            ↓
-confirmed / candidate       memory.md + .context/
-```
+| 场景 | 延续什么 | 如何使用 |
+| --- | --- | --- |
+| Person-oriented · 围绕人 | 本人确认的偏好、协作规则、纠正、跨项目目标 | 在私有位置初始化个人记忆，按需读取 |
+| Project-oriented · 围绕项目 | 项目目标、决策、约束、未完成工作与验证边界 | 在项目中配置上下文入口，通过 checkpoint 恢复 |
+| Combined · 组合使用 | 同时保持个人协作和项目工作的连续性 | 两侧独立配置，只读取相关且已获授权的内容 |
 
-四条边界贯穿整个版本：
+**项目模式可以独立使用，无须建立个人 profile 或全局记忆库。** Person-oriented 是使用场景，global 是存储范围；项目里的偏好不会因为反复出现就自动变成全局个人事实。
 
-1. **Global memory 与 project context 分开。** 项目状态不会因为出现过很多次就自动变成全局身份信息。
-2. **Confirmed 与 candidate 分开。** Agent 的观察可以被保存为候选，不能静默升级成事实。
-3. **Boot digest 与 canonical source 分开。** 启动摘要负责快速进入状态，精确信息回到 canonical context 核对。
-4. **Protocol 与 instance data 分开。** 公开仓库只提供中性协议与模板，真实个人记忆默认留在私有、本地实例。
+## 隔了一段时间，怎样继续项目？
 
-这套结构延续了 v2 的 selective loading 思路，同时把后续真实使用中暴露出的 provenance、scope、supersession 和 privacy 问题纳入协议。
+> “找一下这个项目上次的 checkpoint，找回必要上下文，继续之前的工作。”
 
-## 两种记忆范围
+Agent 通过项目指令、INDEX、可选的简短摘要或已有 issue／PR，定位与当前请求对应的工作线。最新的一条记录可能属于别的任务，因此不能只按时间选择。
 
-### Global memory
+读取 checkpoint 后，应当知道目标、已接受约束、停在哪里、哪些改动尚未完成、已验证什么、还需要验证什么，以及下一步从哪里开始。随后核对会影响行动的现状，例如分支是否合并、文件是否仍有改动、阻塞是否还在。
 
-`memory/` 是跨项目长期记忆的中性 starter scaffold：
+如果缺少某个决策的理由，就检索对应决策和来源；如果缺少验证证据，就查相关记录。每次扩大读取范围，都应当解决一个具体问题。足以正确开始下一步时就停止检索。必要信息无法找回时，明确说明缺口，不猜测历史。
 
-```text
-memory/
-├── INDEX.md          # 轻量入口与模块摘要
-├── procedures.md     # 已确认的持久行为规则
-├── profile.md        # 已确认、长期稳定的事实与偏好
-├── priorities.md     # 当前跨项目优先级
-├── threads.md        # 跨项目长期问题或工作线
-├── observations.md   # 尚未确认的候选观察
-└── archive.md        # 已结束或被覆盖、但仍值得留档的历史
-```
+完整规则见 [项目上下文](references/PROJECT_CONTEXT.md)；并行分支或任务见 [工作线规则](references/CONCURRENT_WORK.md)。
 
-`observations.md` 不属于可信 profile。只有确认过的内容才进入正式模块并长期影响后续行为。
+## 保留上下文，也控制读取量
 
-### Project context
+保存的资料可以很多，每次对话只需要其中相关的一部分。
 
-项目自己的状态采用：
+- **INDEX 是地图。** 说明资料在哪里、何时有用、是否需要核对时效；不复制详细正文，不要求读完所有链接。
+- **Checkpoint 保存继续工作所需的状态。** 更新过期内容，保留证据和未知项；不累计整段对话或每次交接的流水账。
+- **决策与知识保留理由和来源。** 优先链接已有文档、issue、PR，避免出现两套当前事实。
+- **历史按需找回。** 不默认加载。索引变得难用时，再按领域拆分子索引。
+
+“接口完成”虽然很短，却可能漏掉“只做过本地测试、还没部署”。减少读取量时，仍须保留会改变下一步行动的信息。
+
+先改善命名、路由、来源指针与重复内容。只有反复出现找不到关键资料或读取过多无关信息，且这些办法仍无法解决时，才考虑更强的检索设施。项目文件变多本身并不要求向量数据库。见 [检索规模与成本](references/RETRIEVAL_SCALING.md)。本版本未提供 token 节省比例或跨宿主效果保证。
+
+## 项目初始化
+
+让 Agent 使用本 Skill，并指向目标项目：
+
+> “为这个项目接入 Persistent Self 的 project-only 模式。先检查现有指令、文档和任务记录，复用已有来源，建立最小的上下文恢复入口。保留已有内容，验证新对话能否从 checkpoint 继续。”
+
+初始化时合入 [项目指令片段](assets/project-context/AGENTS.snippet.md)，再根据项目已有资料采用模板。**仓库直接提供完整的 [.context/ 模板](assets/project-context/.context/INDEX.md)，目录与实际项目一一对应**，不需要从其他目录组装。点号开头的目录在部分文件浏览器中会隐藏，可以从这个链接进入。
+
+模板提供以下结构；项目可采用整套，也可只采用需要的部分。已有文档能够承担相同职责时，INDEX 直接指向已有文档。Agent 负责在授权范围内完成检查与合入，不需要使用者手动搬文件，也不能覆盖已有内容。
 
 ```text
-memory.md        # boot digest，只负责快速启动
-.context/        # canonical authority
+project/
+├── AGENTS.md                 # 或宿主识别的其他项目指令
+├── memory.md                 # 可选，简短的恢复入口缓存
+└── .context/
+    ├── INDEX.md              # 找到与当前任务相关的资料
+    ├── project.md            # 项目目的、范围、长期约束
+    ├── decisions.md          # 方案取舍、接受与否决的理由
+    ├── knowledge.md          # 非显然知识与重要纠正
+    ├── state.md              # 当前工作线的 checkpoint
+    ├── sources.md            # 来源与证据指针
+    ├── candidates/           # 尚未确认的解释或假设
+    │   └── README.md
+    └── archive/              # 已退出活跃上下文的有用历史
+        └── README.md
 ```
 
-可复制模板位于 [`assets/project-context/`](./assets/project-context/)。其中包含 project brief、current state、decision log、project-specific user model、agent roles、handoff、open questions、rejected ideas、next actions 与 source index。
+### 不同情况下维护哪个文件？
 
-这套结构适合需要多个 Agent、多轮迭代或长时间维护的项目。较小项目可以只保留真正会用到的模块。
+| 文件 | 什么时候读取 | 什么时候更新 |
+| --- | --- | --- |
+| [INDEX.md](assets/project-context/.context/INDEX.md) | 需要定位相关资料或工作线 | 资料位置、用途、状态或工作线入口变化 |
+| [project.md](assets/project-context/.context/project.md) | 需要判断项目目标、范围或约束 | 获得授权的决策改变了项目目标、边界或成功条件 |
+| [decisions.md](assets/project-context/.context/decisions.md) | 需要理解之前为什么这样做、为什么没选另一方案 | 重要方案被接受、否决，或旧决策被取代 |
+| [knowledge.md](assets/project-context/.context/knowledge.md) | 当前任务涉及已有的非显然约束或知识 | 发现并验证可复用知识，或收到重要纠正 |
+| [state.md](assets/project-context/.context/state.md) | 中断后继续对应工作线 | 重要阶段完成、需要交接，或阻塞与验证状态变化 |
+| [sources.md](assets/project-context/.context/sources.md) | 需要找依据、核实来源 | 证据位置、支持的结论、时效或访问条件变化 |
+| [candidates/](assets/project-context/.context/candidates/README.md) | 需要审视与任务相关的待确认假设 | 出现值得保留的推断，或需要确认、缩小、撤回它 |
+| [archive/](assets/project-context/.context/archive/README.md) | 需要追溯历史理由 | 旧内容退出活跃状态，但仍有保留价值且允许保留 |
 
-## 记忆状态
+例如，“发现某个接口有文档没写出的限制”可以更新 `knowledge.md` 并链接证据；“决定采用另一方案”更新 `decisions.md`；“今天停在本地测试通过、端到端验证还没做”更新对应的 `state.md`。这些变化不要求其他文件一起重写。
 
-Persistent Self v3 使用四个状态：
+并行任务分别使用 `.context/state/<workstream>.md`，或继续使用已有 issue／PR；INDEX 指向各自入口，避免多个任务轮流覆盖同一个 `state.md`。
 
-- `confirmed`：用户明确说过、确认过，或由项目 canonical artifact 直接支持；
-- `candidate`：Agent 观察或推断，等待确认；
-- `superseded`：已被更新信息覆盖；
-- `archived`：不再活跃，但仍值得作为历史保留。
+**完整提供模板，不等于每次全部读取或全部填写。** 初始化后，INDEX 只列实际保留的资料；保留但尚未填写的模板标明未初始化，不作为项目事实。详细的采用规则见 [模板说明](assets/project-context/README.md)。
 
-新信息与旧信息冲突时，新的 confirmed memory 应覆盖旧的 active truth。历史记录可以留下，两个互相矛盾的说法不能同时作为当前事实存在。
+已接受决策说明“应该怎样”，实时证据说明“现在怎样”。`memory.md` 是缓存，`.context/` 负责组织知识与指针；文件名不会让一条过期记录变成当前事实。
 
-## Provenance
+本仓库根目录的 [AGENTS.md](AGENTS.md) 约束协议贡献者；使用者应合入上面的项目指令片段，两者用途不同。
 
-长期记忆需要知道“这条信息为什么会在这里”。最小可用格式即可：
+## 个人记忆初始化
 
-```markdown
-- 2026-09-05 · confirmed · user-correction — Prefer concise completion reports.
-```
+将中性的 [memory/](memory/INDEX.md) 模板复制到私有、可持久写入的位置，让宿主指令指向该位置。按需启用模块：
 
-候选观察：
+| 文件 | 用途 |
+| --- | --- |
+| `INDEX.md` | 轻量路由 |
+| `procedures.md` | 已确认、相关时适用的协作规则 |
+| `profile.md` | 本人确认的稳定事实与偏好 |
+| `priorities.md` | 跨项目优先级 |
+| `threads.md` | 长期跨项目问题或工作线 |
+| `observations.md` | 待确认的候选观察 |
+| `archive.md` | 值得保留的非活跃历史 |
 
-```markdown
-- 2026-09-05 · candidate · agent-observation · medium — May prefer async review over live coordination. Needs confirmation.
-```
+不要把真实个人记忆写进公开的 Skill 模板目录。候选观察不能作为可信 profile 影响长期个性化。
 
-不需要把 Markdown 变成数据库 schema。状态、来源与日期足以支持大多数人工审计和后续修正。
+## 维护与权限
 
-## 写入规则
+持久化应当有未来价值，并处于明确请求、当前任务授权或已采用的维护政策之内。项目模式可以在重要里程碑、纠正、阻塞或交接时维护必要状态，不需要每轮对话都写入，也不应只依赖可能错过中断的会话结束 hook。
 
-Persistent Self 不再依赖“对话超过多少轮就保存”或固定时间衰减表。写入由信息性质决定：
+区分已确认内容、直接观察到的事实、候选推断、被取代的信息和非活跃历史。重要条目保留适用范围、来源和时效。Agent 的推断不会因为重复出现就成为个人事实或项目决策。
 
-- 用户明确要求保存的内容可以进入 durable memory；
-- 明确纠正和持久决策可以直接成为 confirmed；
-- Agent 自己推出来的偏好、人格模式或解释只能成为 candidate；
-- 项目状态默认写入 project context；
-- 临时情绪、一次性任务细节和弱证据内容留在当前 session；
-- 写入前先读目标模块，检查重复、冲突与旧版本；
-- 新的 confirmed truth 覆盖旧 truth；
-- 用户要求 `forget` / `delete` 时，真正删除相关 active memory 与派生摘要，不在隐藏 archive 中偷偷保留一份。
+用户要求删除时，应移除相关 active memory 和派生摘要，不在 archive 中偷偷保留。工作区删除不等于清除 Git 历史或备份；无法处理的副本应如实说明，进一步删除遵循对应权限。
 
-完整规则见 [`SKILL.md`](./SKILL.md) 与 [`references/MEMORY_MODEL.md`](./references/MEMORY_MODEL.md)。
+**公开的是规则与中性模板。** 实际项目内容是否进入 Git、是否公开，由项目的共享边界决定；公开索引也不能泄露私人来源的名称、链接或本地路径。个人记忆默认私有。检索能力、数据授权、默认上下文和运行环境隔离是不同边界。
 
-## 安装
+详见 [记忆模型](references/MEMORY_MODEL.md) 与 [Skill 协议](SKILL.md)。
 
-Persistent Self 遵循当前 [Agent Skills](https://agentskills.io/) 结构：一个 skill 目录内包含 `SKILL.md`，更长的机制说明与模板按需放在 `references/`、`assets/` 等目录。
+## 宿主接入与验证
 
-推荐把**整个仓库内容**作为 `persistent-self/` skill 目录安装，这样 Skill 可以按需读取 references 与 project-context assets。
+将整个包放入宿主支持的 Skill 位置，使相对路径下的 references 与 assets 保持可用。实际路径和指令机制以当前宿主为准；项目使用不要求全局安装。配置方法见 [HOST_INTEGRATION.md](references/HOST_INTEGRATION.md)。
 
-常见宿主位置包括：
+验收需要区分：
 
-```text
-# 通用 / 部分兼容宿主
-~/.agents/skills/persistent-self/
+1. 模板和指令已创建；
+2. 宿主已配置为能够发现入口；
+3. 一个没有旧对话的新会话，确实找到了对应 checkpoint 并正确继续。
 
-# Codex
-~/.codex/skills/persistent-self/
+本仓库不提供统一 session-start hook、数据库、后台服务或对话搜索。若宿主不能自动加载项目指令，就需要在新会话中明确提供入口。保存了文件并不自动证明上下文已被读取。
 
-# Claude Code
-~/.claude/skills/persistent-self/
+[验收场景](evals/SCENARIOS.md) 同时检查关键约束是否找回、读了多少无关资料。实际 token 指标必须来自运行记录；字符数仅能作为读取量的近似。
 
-# Cursor
-~/.cursor/skills/persistent-self/
+## 从旧版本迁移
 
-# Windsurf
-~/.codeium/windsurf/skills/persistent-self/
+v3.1 将项目侧从十文件模板更新为按需恢复、按工作线维护的结构。旧文件名可以保留，关键是采用新的语义与路由。先检查并保留原始内容，再按来源和范围迁移、验证，最后处理旧结构。安装不会自动迁移用户数据。
 
-# Hermes
-~/.hermes/skills/persistent-self/
-```
+- [v3.0 → v3.1 项目迁移映射](references/MIGRATION_V3_TO_V3_1.md)
+- [v2 个人记忆迁移历史参考](references/MIGRATION_V2_TO_V3.md)：项目内容可直接迁入当前结构，无须先建立旧十文件布局。
 
-项目级 Skill 也可以放在宿主支持的 project skill root。具体路径与生命周期接入见 [`references/HOST_INTEGRATION.md`](./references/HOST_INTEGRATION.md)。
+## 设计来源与 License
 
-## 初始化 global memory
-
-将 `memory/` scaffold 复制到**私有、可持久写入**的位置，再在宿主的长期指令中告诉 Agent 这个 memory root 在哪里。
-
-会话开始时通常只需要：
-
-1. 读 `INDEX.md`；
-2. 读 `procedures.md`；
-3. 根据当前任务选择其他模块。
-
-不要把整个 memory 目录无差别注入每次请求。
-
-## 初始化项目 context
-
-复制：
-
-```text
-assets/project-context/memory.md
-assets/project-context/.context/
-```
-
-到项目根目录。
-
-`memory.md` 只保留能帮助 Agent 快速进入状态的短摘要。精确决策、当前状态、来源和历史由 `.context/` 维护。
-
-公开仓库中的项目 context 需要额外检查隐私。项目特定的用户信息、内部决策或私有来源不适合因为使用了这个 scaffold 就自动公开。
-
-## 从 v2 迁移
-
-v2 的 `identity / salience / themes / discussions / patterns / growth` 等模块在 v3 中不再作为默认结构。
-
-迁移时：
-
-- `procedures.md` → 保留已确认规则；
-- `identity.md` → 只把明确确认、长期成立的内容迁入 `profile.md`；
-- `salience.md` → 跨项目优先级迁入 `priorities.md`；
-- `threads.md` → 跨项目内容留在 global，项目内容进入 `.context/`；
-- `patterns.md` / `growth.md` → 默认作为 candidate 重新审查，不直接当作用户事实；
-- `discussions.md` → 只有仍有长期作用的结论进入正式 memory，其余作为历史或 source provenance 处理。
-
-**已有 `memory.md`、memory 目录或 `.context/` 不直接覆盖。** 先保留原件，再迁移，验证完成后才处理旧结构。
-
-完整映射见 [`references/MIGRATION_V2_TO_V3.md`](./references/MIGRATION_V2_TO_V3.md)。
-
-## 当前边界
-
-- 没有自己的数据库、向量存储或后台服务；
-- 没有统一的自动 session-start hook；
-- conversation search 是可选增强能力，不再假设存在名为 `session_search` 的工具；
-- global memory 的真实实例应当保持私有；
-- project context 是否进入 Git，取决于项目的公开边界；
-- selective loading 是设计原则，具体上下文成本由宿主、模型和实际内容决定。
-
-## 仓库结构
-
-```text
-SKILL.md                     # v3 执行协议
-memory/                      # 中性 global-memory scaffold
-references/
-  MEMORY_MODEL.md            # scope / state / provenance / privacy
-  HOST_INTEGRATION.md        # 宿主接入方式
-  MIGRATION_V2_TO_V3.md      # v2 → v3 迁移
-assets/project-context/      # copyable project memory.md + .context/
-README.md                    # 中文说明
-README.en.md                 # English overview
-LICENSE                      # MIT
-```
-
-## 设计来源
-
-Persistent Self 最初受 [soul.py](https://github.com/menonpg/soul.py) 的模块化记忆思路启发。v3 又吸收了后续真实 Agent 协作中的实践：轻量 boot digest、canonical project context、confirmed/candidate 分层、可追溯更新，以及全局与项目作用域的分离。
-
-## License
+Persistent Self 最初受 [soul.py](https://github.com/menonpg/soul.py) 的模块化记忆思路启发。本次项目规则来自 Helia 长期项目协作中的上下文维护实践，转化为面向所有使用者的中性协议；不携带个人运行配置或私人项目实例。
 
 [MIT](LICENSE)
